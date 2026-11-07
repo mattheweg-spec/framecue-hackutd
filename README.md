@@ -41,3 +41,7 @@ The three manual preview buttons are only for checking the visual cue animation 
 - `server.js` — static web server, protected NVIDIA API call, response validation, and cue mapping.
 - `.env.example` — key setup template; copy to the ignored `.env.local` file.
 - `.gitignore` — excludes local secrets and the uploaded `drive-photos` directory.
+- `CAD/framecue_shoe_exoskeleton.scad` — editable, parameterized over-shoe wearable concept. Open it in OpenSCAD and edit the fit values at the top. Set `show_shoe = false` before exporting a device-only mesh.
+- `CAD/MATERIALS_AND_FIT.md` — preliminary material comparison, adjustable-fit requirements, and sources.
+- `CAD/framecue_shoe_wearable_concept.stl` — device-only mesh for viewing or importing; it is a prototype assembly, not a validated print-ready aid.
+- `CAD/framecue_shoe_exoskeleton_preview.png` — rendered concept preview.
