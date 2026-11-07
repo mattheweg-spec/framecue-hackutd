@@ -47,4 +47,4 @@ The three manual preview buttons are only for checking the visual cue animation 
 - `CAD/framecue_shoe_exoskeleton.scad` and its STL / preview — earlier draft, retained for comparison; superseded by FLUX.
 - `CAD/MATERIALS_AND_FIT.md` — preliminary material comparison, adjustable-fit requirements, and sources.
 
-The editable Tinkercad workspace is named **FrameCue FLUX Exoshoe Concept**. It is a rough native-shape layout of the paired chassis rails and three cue pods. Chrome blocked importing the detailed mesh through the browser upload bridge, so the Tinkercad workspace does not yet contain the full FLUX geometry. The parameterized OpenSCAD source above is the detailed editable model in the meantime.
+The Tinkercad workspace is named **FrameCue FLUX Exoshoe Concept** and now contains the full over-shoe STL assembly. Tinkercad treats that imported mesh as one shape, so it can be resized, repositioned, recolored, or replaced, but its individual components are not separate there. Use the parameterized OpenSCAD source above to edit the geometry and fit values by component.
