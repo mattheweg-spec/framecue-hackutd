@@ -22,7 +22,7 @@ The model is a visual/fit prototype. It does not generate real pressure, provide
 
 Use a **hybrid construction**, not one all-purpose material:
 
-1. **First demonstration:** PETG open-frame side rails and rounded slider blocks, 20–25 mm polyester webbing, and removable thin EVA foam pads. Keep all hard plastic off bare skin and away from the shoe sole.
+1. **First demonstration:** PETG side chassis and rounded slider blocks, 12–15 mm polyester webbing for the low-profile FLUX bands, and removable thin EVA pads at contact points. Keep hard plastic off bare skin and away from the shoe sole. The narrower bands are an aesthetic and bulk tradeoff; check for pinching and widen or add a load-spreading pad if needed.
 2. **Optional comfort parts:** TPU bumpers or cue-pad covers, only if the available printer can make reliable TPU parts.
 3. **Later durable version:** consider SLS PA12 for the frame after fit testing; retain textile straps and replaceable padding.
 
@@ -46,7 +46,7 @@ One open-access study comparing custom EVA and TPU foot orthoses found comfort b
 - Fit **over the shoe**, with two slim adjustable bands and low-profile anchors. This avoids making the user scan their foot or replacing their shoe.
 - The FLUX source exposes shoe length and width fit offsets as adjustable parameters; those values are design controls, not a validated universal fit range.
 - Keep the outsole and bottom of the shoe completely clear. Do not put a part underfoot or across the toe.
-- Use a replaceable pad at each shoe-contact point, rounded edges, and broad straps. Avoid tight straps and concentrated contact points.
+- Use replaceable pads at shoe-contact points and rounded edges. Keep the narrow bands loose enough to avoid pinching; widen them or add a load-spreading pad if comfort suffers.
 - Put the recognizable high-visibility/reflective badge on the outside of the shoe, where another person can see it. A label such as **ASSISTIVE NAVIGATION** can clarify its purpose; visibility alone cannot guarantee that strangers will identify it correctly.
 - Treat the three colored raised zones as **visual mock-ups** of left / center / right cues. This CAD model does not actuate them or show that pressure will be felt through every shoe.
 
