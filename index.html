@@ -14,20 +14,27 @@
     .video-frame video{position:absolute;inset:0;z-index:0}
     .detection-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
     .video-frame.has-video .placeholder{display:none}
-    .detection-box{position:absolute;border:1px solid rgba(255,99,112,.86);background:linear-gradient(135deg,rgba(255,73,91,.12),rgba(255,73,91,.025));box-shadow:0 0 18px rgba(255,64,86,.2),inset 0 0 14px rgba(255,64,86,.08);animation:box-in .32s ease-out,box-breathe 2.4s ease-in-out infinite alternate}
+    .detection-box{position:absolute;border:1px solid rgba(255,99,112,.86);background:linear-gradient(135deg,rgba(255,73,91,.08),rgba(255,73,91,.025));box-shadow:0 0 14px rgba(255,64,86,.18),inset 0 0 10px rgba(255,64,86,.05);transition:left .1s linear,top .1s linear,width .1s linear,height .1s linear,opacity .12s linear}
     .detection-box.primary{border-color:#ff6876;box-shadow:0 0 24px rgba(255,64,86,.34),inset 0 0 18px rgba(255,64,86,.13)}
-    .detection-box.predicted{border-style:dashed;filter:saturate(.72)}
     .detection-corner{position:absolute;width:12px;height:12px;border-color:#ffc0a6;border-style:solid;filter:drop-shadow(0 0 5px #ff5d68)}
     .detection-corner.tl{top:-2px;left:-2px;border-width:2px 0 0 2px}.detection-corner.tr{top:-2px;right:-2px;border-width:2px 2px 0 0}.detection-corner.bl{bottom:-2px;left:-2px;border-width:0 0 2px 2px}.detection-corner.br{bottom:-2px;right:-2px;border-width:0 2px 2px 0}
-    .detection-tag{position:absolute;top:-25px;left:-1px;max-width:min(220px,70vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;border-radius:7px 7px 7px 2px;background:#b52e45;color:#fff6f1;font:700 10px/1.1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.035em;box-shadow:0 4px 16px #0a1018aa}
+    .detection-tag{position:absolute;top:-25px;left:-1px;width:max-content;max-width:min(220px,calc(100vw - 56px));white-space:normal;overflow-wrap:anywhere;padding:5px 8px;border-radius:7px 7px 7px 2px;background:#b52e45;color:#fff6f1;font:700 10px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.035em;box-shadow:0 4px 16px #0a1018aa}
     .detection-box.secondary .detection-tag{background:#74404c}
-    .detection-box.tag-inside .detection-tag{top:3px;left:3px;max-width:calc(100% - 6px);border-radius:5px}
+    .detection-box.tag-inside .detection-tag{top:3px;left:3px;border-radius:5px}
+    .detection-box.tag-right .detection-tag{left:auto;right:-1px;border-radius:7px 7px 2px 7px}
+    .detection-box.tag-right.tag-inside .detection-tag{right:3px;left:auto}
     .view-label{z-index:3}
     .privacy-note{margin:10px 2px 0;color:#9dafb3;font-size:10px;line-height:1.5}
     .primary:disabled,.secondary:disabled{opacity:.48;cursor:not-allowed;transform:none}
-    @keyframes box-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
-    @keyframes box-breathe{from{background-color:rgba(255,73,91,.035)}to{background-color:rgba(255,73,91,.1)}}
-    @media(prefers-reduced-motion:reduce){.detection-box{animation:none}}
+    .intro>div,.intro .sub,.status-row>div,.status-title,.status-caption,.model-result,.model-result strong,.model-result p,.privacy-note,.footer span,.safety span,.log li,.step>span:last-child{min-width:0;overflow-wrap:anywhere}
+    .status-row{align-items:flex-start}
+    .status-row>div{flex:1}
+    .status-chip{max-width:48%;white-space:normal;text-align:center;line-height:1.25;overflow-wrap:anywhere}
+    .footer{align-items:flex-start}
+    .main-grid>*{min-width:0}
+    .card-head>*,.wearable-top>*,.cue-buttons>*{min-width:0}
+    .detection-tag{overflow-wrap:anywhere;word-break:normal}
+    @media(max-width:420px){.status-row{gap:8px}.status-chip{max-width:42%}.cue-button{font-size:9px}.track{font-size:10px;padding:7px 9px}}
   </style>
 </head>
 <body>
@@ -98,6 +105,8 @@
     let analysisTimer = null;
     let previousDetections = [];
     let predictedOverlays = [];
+    let nextTrackId = 1;
+    let leadTrackId = null;
     let animatedCue = 'clear';
     let localModel = null;
     let localModelPromise = null;
@@ -143,45 +152,68 @@
       element.textContent = chip;
       element.className = `status-chip ${kind}`;
     }
-    function renderDetections(objects = []) {
-      detectionLayer.querySelectorAll('.detection-box').forEach(box => box.remove());
-      predictedOverlays = [];
+    function renderDetections(objects = [], clear = false) {
+      if (clear) {
+        predictedOverlays.forEach(entry => entry.element.remove());
+        predictedOverlays = [];
+        viewLabel.textContent = 'SCANNING · NO CLEAR OBJECT';
+        return;
+      }
+      const now = performance.now();
+      const currentIds = new Set();
       const visibleObjects = Array.isArray(objects) ? objects.slice(0, 8) : [];
-      visibleObjects.forEach((object, index) => {
-        const boxValues = Array.isArray(object.box) ? object.box.map(Number) : [];
-        if (boxValues.length !== 4 || !boxValues.every(Number.isFinite)) return;
-        const [left, top, right, bottom] = boxValues.map(value => Math.min(1000, Math.max(0, value)));
+      visibleObjects.forEach(object => {
+        const values = Array.isArray(object.box) ? object.box.map(Number) : [];
+        if (values.length !== 4 || !values.every(Number.isFinite)) return;
+        const [left, top, right, bottom] = values.map(value => Math.min(1000, Math.max(0, value)));
         if (right <= left || bottom <= top) return;
-        const box = document.createElement('div');
-        box.className = `detection-box ${index === 0 ? 'primary' : 'secondary'}`;
-        if (top < 300) box.classList.add('tag-inside');
-        box.style.left = `${left / 10}%`;
-        box.style.top = `${top / 10}%`;
-        box.style.width = `${(right - left) / 10}%`;
-        box.style.height = `${(bottom - top) / 10}%`;
-        for (const cornerName of ['tl', 'tr', 'bl', 'br']) {
-          const corner = document.createElement('span');
-          corner.className = `detection-corner ${cornerName}`;
-          box.append(corner);
+        const trackId = object.trackId || `track-${nextTrackId++}`;
+        currentIds.add(trackId);
+        let entry = predictedOverlays.find(candidate => candidate.trackId === trackId);
+        if (!entry) {
+          const box = document.createElement('div');
+          box.className = 'detection-box secondary';
+          for (const cornerName of ['tl', 'tr', 'bl', 'br']) {
+            const corner = document.createElement('span');
+            corner.className = `detection-corner ${cornerName}`;
+            box.append(corner);
+          }
+          const tag = document.createElement('span');
+          tag.className = 'detection-tag';
+          box.append(tag);
+          detectionLayer.append(box);
+          entry = { trackId, element: box, tag, boxValues: [left, top, right, bottom], object, lastSeenAt: now, current: true };
+          predictedOverlays.push(entry);
         }
-        const tag = document.createElement('span');
-        tag.className = 'detection-tag';
-        const description = `${object.label || 'Object'} · ${object.distanceBand || 'distance unknown'} · ${object.motionLabel || 'motion unknown'}`;
-        tag.textContent = description;
-        box.append(tag);
-        detectionLayer.append(box);
-        predictedOverlays.push({ element: box, tag, description, object, boxValues: [left, top, right, bottom], bornAt: performance.now() });
+        const description = `${object.label || 'Object'} · ${object.distanceBand || 'distance unknown'}`;
+        entry.object = object;
+        entry.boxValues = [left, top, right, bottom];
+        entry.lastSeenAt = now;
+        entry.current = true;
+        if (entry.tag.textContent !== description) entry.tag.textContent = description;
+        entry.element.classList.toggle('primary', trackId === leadTrackId);
+        entry.element.classList.toggle('secondary', trackId !== leadTrackId);
+        entry.element.classList.toggle('tag-inside', top < 300);
+        entry.element.classList.toggle('tag-right', left > 650);
+        entry.element.style.opacity = '1';
       });
-      const count = predictedOverlays.length;
-      viewLabel.textContent = count ? `${count} PRIORITIZED HAZARD${count === 1 ? '' : 'S'} · ESTIMATES` : 'SCANNING · NO CLEAR OBJECT';
+      predictedOverlays = predictedOverlays.filter(entry => {
+        entry.current = currentIds.has(entry.trackId);
+        if (!entry.current && now - entry.lastSeenAt > 1100) { entry.element.remove(); return false; }
+        return true;
+      });
+      predictedOverlays.sort((a, b) => Number(b.trackId === leadTrackId) - Number(a.trackId === leadTrackId));
+      const count = predictedOverlays.filter(entry => entry.current).length;
+      const nextLabel = count ? `${count} LOCAL TARGET${count === 1 ? '' : 'S'} · TRACKING` : 'SCANNING · WAITING FOR DETECTIONS';
+      if (viewLabel.textContent !== nextLabel) viewLabel.textContent = nextLabel;
     }
     function animatePredictions() {
       const now = performance.now();
       const clamp = value => Math.min(1000, Math.max(0, value));
       predictedOverlays = predictedOverlays.filter(entry => {
-        const age = (now - entry.bornAt) / 1000;
-        if (age > 2.8) { entry.element.remove(); return false; }
-        const seconds = Math.min(age, 0.85);
+        const age = (now - entry.lastSeenAt) / 1000;
+        if (age > 1.1) { entry.element.remove(); return false; }
+        const seconds = entry.current ? 0 : Math.min(age, 0.55);
         const [left, top, right, bottom] = entry.boxValues;
         const velocity = entry.object.velocity || {};
         const centerX = (left + right) / 2 + (velocity.x || 0) * seconds;
@@ -197,21 +229,15 @@
         entry.element.style.width = `${Math.max(0, predictedRight - predictedLeft) / 10}%`;
         entry.element.style.height = `${Math.max(0, predictedBottom - predictedTop) / 10}%`;
         entry.currentBox = [predictedLeft, predictedTop, predictedRight, predictedBottom];
-        entry.element.style.opacity = age <= 1 ? '1' : String(Math.max(0.32, 1 - (age - 1) * 0.38));
-        entry.element.classList.toggle('predicted', age > 0.15);
-        entry.tag.textContent = age > 0.15 ? `PREDICTED · ${entry.description}` : entry.description;
+        entry.element.style.opacity = entry.current ? '1' : String(Math.max(0.48, 1 - age * 0.45));
         return true;
       });
-      if (predictedOverlays.length) {
-        const predicting = predictedOverlays.some(entry => now - entry.bornAt > 150);
-        viewLabel.textContent = localModel
-          ? `${predictedOverlays.length} LOCAL TARGET${predictedOverlays.length === 1 ? '' : 'S'} · ${localFps.toFixed(1)} FPS${predicting ? ' · PREDICTING' : ''}`
-          : `${predictedOverlays.length} PRIORITIZED HAZARD${predictedOverlays.length === 1 ? '' : 'S'} · ${predicting ? 'SHORT PREDICTION' : 'ESTIMATES'}`;
-      } else if (running) viewLabel.textContent = localModel
-        ? `LOCAL · ${localFps.toFixed(1)} FPS · NO KNOWN TARGETS`
-        : 'SCANNING · WAITING FOR DETECTIONS';
+      if (!predictedOverlays.some(entry => entry.current) && running) {
+        const nextLabel = localModel ? 'LOCAL · SCANNING FOR TARGETS' : 'SCANNING · WAITING FOR DETECTIONS';
+        if (viewLabel.textContent !== nextLabel) viewLabel.textContent = nextLabel;
+      }
       if (running) {
-        const lead = predictedOverlays[0];
+        const lead = predictedOverlays.find(entry => entry.trackId === leadTrackId) || predictedOverlays[0];
         const centerX = lead?.currentBox ? (lead.currentBox[0] + lead.currentBox[2]) / 2 : null;
         const nextCue = centerX === null ? 'clear' : centerX < 333 ? 'left' : centerX > 666 ? 'right' : 'center';
         if (nextCue !== animatedCue) { setCueVisual(nextCue); animatedCue = nextCue; }
@@ -269,9 +295,10 @@
         let bestDistance = Infinity;
         for (let index = 0; index < previousDetections.length; index++) {
           const previous = previousDetections[index];
-          if (usedPrevious.has(index) || previous.label !== item.label) continue;
+          if (usedPrevious.has(index) || previous.label !== item.label || now - previous.time > 1100) continue;
           const distance = Math.hypot(center.x - previous.center.x, center.y - previous.center.y);
-          if (distance < bestDistance) { bestDistance = distance; matched = { ...previous, index }; }
+          const matchLimit = Math.max(180, Math.hypot(previous.width, previous.height) * 0.85);
+          if (distance < bestDistance && distance < matchLimit) { bestDistance = distance; matched = { ...previous, index }; }
         }
         let motionLabel = 'motion unknown';
         let motionScore = 0.03;
@@ -295,13 +322,22 @@
           else if (centerSpeed > 0.2) { motionLabel = 'moving'; motionScore = 0.1; }
           else { motionLabel = 'stationary'; motionScore = 0.02; }
         }
-        const distanceBand = proximity >= 0.62 ? 'near' : proximity >= 0.32 ? 'middle' : 'far';
+        let distanceBand = proximity >= 0.62 ? 'near' : proximity >= 0.32 ? 'middle' : 'far';
+        if (matched?.distanceBand === 'near' && proximity >= 0.54) distanceBand = 'near';
+        else if (matched?.distanceBand === 'far' && proximity < 0.4) distanceBand = 'far';
+        else if (matched?.distanceBand === 'middle' && proximity >= 0.27 && proximity < 0.68) distanceBand = 'middle';
         const inCenterPath = center.x >= 350 && center.x <= 650;
         const priorityScore = proximity * 0.7 + motionScore + (inCenterPath ? 0.05 : 0);
-        return { ...item, proximity, distanceBand, motionLabel, priorityScore, area, center, width, height, velocity, time: now };
+        return { ...item, trackId: matched?.trackId || `track-${nextTrackId++}`, proximity, distanceBand, motionLabel, priorityScore, area, center, width, height, velocity, time: now };
       });
-      previousDetections = enriched.map(({ label, area, center, width, height, velocity, time }) => ({ label, area, center, width, height, velocity, time }));
-      return enriched.sort((a, b) => b.priorityScore - a.priorityScore);
+      const updated = enriched.map(({ trackId, label, area, center, width, height, velocity, distanceBand, time }) => ({ trackId, label, area, center, width, height, velocity, distanceBand, time }));
+      const missed = previousDetections.filter((_, index) => !usedPrevious.has(index) && now - previousDetections[index].time < 1100);
+      previousDetections = [...updated, ...missed];
+      const sorted = enriched.sort((a, b) => b.priorityScore - a.priorityScore);
+      const activeLead = sorted.find(item => item.trackId === leadTrackId);
+      if (!activeLead || sorted[0]?.priorityScore > activeLead.priorityScore + 0.18) leadTrackId = sorted[0]?.trackId || leadTrackId;
+      if (!leadTrackId && sorted.length) leadTrackId = sorted[0].trackId;
+      return sorted.sort((a, b) => Number(b.trackId === leadTrackId) - Number(a.trackId === leadTrackId));
     }
     async function scanLocally() {
       if (!running || !localModel || localScanBusy) return;
@@ -551,7 +587,7 @@
       video.classList.remove('ready');
       frameBox.classList.remove('has-video');
       frameBox.style.aspectRatio = '';
-      renderDetections([]);
+      renderDetections([], true);
       previousDetections = [];
       document.querySelector('#placeholder').hidden = false;
       document.querySelector('#cameraDot').classList.remove('active');
