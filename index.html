@@ -14,9 +14,6 @@
     .video-frame video{position:absolute;inset:0;z-index:0}
     .detection-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
     .video-frame.has-video .placeholder{display:none}
-    .scan-beam{display:none;position:absolute;left:0;right:0;top:-2px;height:2px;z-index:1;background:linear-gradient(90deg,transparent,#ff5d68 18%,#ffd1a3 50%,#ff5d68 82%,transparent);box-shadow:0 0 16px #ff536b;opacity:.9}
-    .video-frame.scanning .scan-beam{display:block;animation:scan 3s ease-in-out infinite alternate}
-    @keyframes scan{from{top:3%}to{top:97%}}
     .detection-box{position:absolute;border:1px solid rgba(255,99,112,.86);background:linear-gradient(135deg,rgba(255,73,91,.12),rgba(255,73,91,.025));box-shadow:0 0 18px rgba(255,64,86,.2),inset 0 0 14px rgba(255,64,86,.08);animation:box-in .32s ease-out,box-breathe 2.4s ease-in-out infinite alternate}
     .detection-box.primary{border-color:#ff6876;box-shadow:0 0 24px rgba(255,64,86,.34),inset 0 0 18px rgba(255,64,86,.13)}
     .detection-corner{position:absolute;width:12px;height:12px;border-color:#ffc0a6;border-style:solid;filter:drop-shadow(0 0 5px #ff5d68)}
@@ -29,7 +26,7 @@
     .primary:disabled,.secondary:disabled{opacity:.48;cursor:not-allowed;transform:none}
     @keyframes box-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
     @keyframes box-breathe{from{background-color:rgba(255,73,91,.035)}to{background-color:rgba(255,73,91,.1)}}
-    @media(prefers-reduced-motion:reduce){.video-frame.scanning .scan-beam,.detection-box{animation:none}}
+    @media(prefers-reduced-motion:reduce){.detection-box{animation:none}}
   </style>
 </head>
 <body>
@@ -47,7 +44,7 @@
         <div class="card-head"><h3>Camera view</h3><div class="live-pill"><span class="dot" id="cameraDot"></span><span id="cameraState">Camera off</span></div></div>
         <div class="video-frame" id="videoFrame">
           <video id="video" playsinline muted></video>
-          <div class="detection-layer" id="detectionLayer" aria-hidden="true"><div class="scan-beam"></div></div>
+          <div class="detection-layer" id="detectionLayer" aria-hidden="true"></div>
           <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true">◉</div><strong>Ready when you are</strong><span>Start live scan to open the camera and analyze successive frames.</span></div>
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
@@ -243,7 +240,6 @@
       if (!running || analysisStarted) return;
       analysisStarted = true;
       retryButton.hidden = true;
-      frameBox.classList.add('scanning');
       setStatus('Live scene scan', 'Analyzing successive frames and updating object estimates.', 'ANALYZING', 'warn');
       addLog('Live scene scan started. Sending camera frames to NVIDIA.');
       analyzeFrame();
@@ -289,7 +285,6 @@
         setStatus('Live scene scan', 'Object estimates update as each new frame is interpreted.', 'NEMOTRON', 'good');
       } catch (error) {
         analysisStarted = false;
-        frameBox.classList.remove('scanning');
         window.clearTimeout(analysisTimer);
         analysisTimer = null;
         retryButton.hidden = !running;
@@ -365,7 +360,6 @@
     function stopCamera() {
       running = false;
       analysisStarted = false;
-      frameBox.classList.remove('scanning');
       window.clearTimeout(analysisTimer);
       analysisTimer = null;
       if (stream) stream.getTracks().forEach(track => track.stop());

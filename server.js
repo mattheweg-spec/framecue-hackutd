@@ -46,11 +46,47 @@ function readJson(request, maxBytes = 8 * 1024 * 1024) {
 }
 
 function parseModelJson(content) {
-  const cleaned = String(content || '').replace(/```(?:json)?/gi, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start < 0 || end <= start) throw new Error('Nemotron returned an unreadable scene description. Try again.');
-  return JSON.parse(cleaned.slice(start, end + 1));
+  if (content && typeof content === 'object' && !Array.isArray(content)) {
+    if (Array.isArray(content.objects) || typeof content.object === 'string') return content;
+    if (typeof content.text === 'string') content = content.text;
+    else if (typeof content.content === 'string') content = content.content;
+    else content = JSON.stringify(content);
+  }
+  const text = Array.isArray(content)
+    ? content.map(part => typeof part === 'string' ? part : part?.text || part?.content || '').join('\n')
+    : String(content || '');
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```(?:json)?/gi, '').trim();
+  const candidates = [cleaned];
+  let depth = 0;
+  let start = -1;
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < cleaned.length; index++) {
+    const character = cleaned[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') { quoted = true; continue; }
+    if (character === '{') {
+      if (depth === 0) start = index;
+      depth++;
+    } else if (character === '}' && depth > 0) {
+      depth--;
+      if (depth === 0 && start >= 0) candidates.push(cleaned.slice(start, index + 1));
+    }
+  }
+  for (const candidate of candidates) {
+    for (const source of [candidate, candidate.replace(/,\s*([}\]])/g, '$1')]) {
+      try {
+        const parsed = JSON.parse(source);
+        if (parsed && typeof parsed === 'object' && (Array.isArray(parsed.objects) || typeof parsed.object === 'string')) return parsed;
+      } catch { /* Try the next balanced JSON object or common trailing-comma repair. */ }
+    }
+  }
+  throw new Error('Nemotron response did not contain usable obstacle JSON. Retry the scan.');
 }
 
 function normalizeObservation(raw) {
@@ -110,8 +146,8 @@ async function analyze(request, response) {
   const prompt = [
     'Detect up to 8 visible obstacles, including individual people in a crowd. Label people only as "person"; do not identify anyone, describe appearance, inspect faces, or read text. Separate people when their bodies are visibly distinct.',
     'For each object, estimate a tight bounding box in image coordinates from 0 to 1000: [left, top, right, bottom]. Coordinates are normalized to the full image, with 0 at the top/left and 1000 at the bottom/right.',
-    'For each object, also estimate relative depth as near, middle, or far using apparent size and scene perspective; these are rough visual categories, not measured distances. Prioritize objects that appear closest and that occupy the lower or central walking area. Do not claim motion from a single image. Do not recommend a route or claim the scene is safe.',
-    'Return ONLY valid JSON with exactly these keys: objects (array of {label, confidence, box, depth}), reason (short string). Confidence is 0 to 1. Use an empty objects array when no obstacle is clear. Do not include markdown.'
+    'Prioritize obstacles that look largest/closest and that occupy the lower or central walking area. Do not claim motion from a single image. Do not recommend a route or claim the scene is safe.',
+    'Return ONLY a compact JSON object with one key: objects. Each array item has only label, confidence, and box. Confidence is 0 to 1. Use an empty array when no obstacle is clear. Do not include markdown or prose.'
   ].join(' ');
   let apiResponse;
   try {
@@ -124,7 +160,7 @@ async function analyze(request, response) {
         response_format: { type: 'json_object' },
         chat_template_kwargs: { enable_thinking: false },
         temperature: 0.2,
-        max_tokens: 420,
+        max_tokens: 900,
         stream: false
       }),
       signal: AbortSignal.timeout(45000)
@@ -137,12 +173,16 @@ async function analyze(request, response) {
     const message = typeof result?.error?.message === 'string' ? result.error.message.slice(0, 220) : `NVIDIA returned ${apiResponse.status}.`;
     return sendJson(response, 502, { error: `NVIDIA request failed: ${message}` });
   }
+  const choice = result.choices?.[0];
+  if (choice?.finish_reason === 'length') {
+    return sendJson(response, 502, { error: 'Nemotron response was cut off. Try a simpler view with fewer visible objects.' });
+  }
   try {
-    const observation = normalizeObservation(parseModelJson(result.choices?.[0]?.message?.content));
+    const observation = normalizeObservation(parseModelJson(choice?.message?.content));
     const cue = mapSceneToHapticCue(observation);
     return sendJson(response, 200, { model: MODEL, observation, cue, workflow: ['frame captured', 'Nemotron interpretation complete', 'local cue mapping complete'] });
   } catch (error) {
-    return sendJson(response, 502, { error: error instanceof SyntaxError ? 'Nemotron returned invalid JSON. Try again.' : error.message });
+    return sendJson(response, 502, { error: error.message });
   }
 }
 
