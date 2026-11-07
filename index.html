@@ -29,13 +29,13 @@
           <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true">◉</div><strong>Ready when you are</strong><span>Start the camera to begin scene analysis.</span></div>
           <span class="view-label">OBJECT POSITION IN CAMERA VIEW</span>
         </div>
-        <div class="controls"><button class="primary" id="startButton">Start camera</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
+        <div class="controls"><button class="primary" id="startButton">Start camera</button><button class="primary" id="analyzeButton" disabled>Start scene analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
       </section>
       <div class="side-stack">
         <section class="card side-card" aria-labelledby="analysis-title">
           <h3 id="analysis-title">Scene interpretation</h3>
           <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
-          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">Start the camera to send a reduced-size frame to Nemotron.</p></div>
+          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">Start the camera preview, then choose when to send frames to Nemotron.</p></div>
           <div class="steps" aria-label="Processing steps">
             <div class="step" id="stepCapture"><span class="num">1</span><span>Capture a camera frame</span></div>
             <div class="step" id="stepNemotron"><span class="num">2</span><span>Interpret scene with Nemotron</span></div>
@@ -63,12 +63,14 @@
     const video = document.querySelector('#video');
     const frameBox = document.querySelector('#videoFrame');
     const startButton = document.querySelector('#startButton');
+    const analyzeButton = document.querySelector('#analyzeButton');
     const stopButton = document.querySelector('#stopButton');
     const logList = document.querySelector('#log');
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { alpha: false });
     let stream = null;
     let running = false;
+    let analysisStarted = false;
     let requestInFlight = false;
     let analysisTimer = null;
 
@@ -102,8 +104,49 @@
       element.textContent = chip;
       element.className = `status-chip ${kind}`;
     }
+    function requestCamera(constraints, timeoutMs = 10000) {
+      let timedOut = false;
+      let timer;
+      const request = navigator.mediaDevices.getUserMedia(constraints);
+      const guardedRequest = request.then(mediaStream => {
+        window.clearTimeout(timer);
+        if (timedOut) {
+          mediaStream.getTracks().forEach(track => track.stop());
+          throw Object.assign(new Error('Camera startup took too long.'), { name: 'TimeoutError' });
+        }
+        return mediaStream;
+      }, error => {
+        window.clearTimeout(timer);
+        throw error;
+      });
+      return Promise.race([
+        guardedRequest,
+        new Promise((_, reject) => {
+          timer = window.setTimeout(() => {
+            timedOut = true;
+            reject(Object.assign(new Error('Camera startup took too long.'), { name: 'TimeoutError' }));
+          }, timeoutMs);
+        })
+      ]);
+    }
+    function describeCameraError(error) {
+      if (error.name === 'NotAllowedError' || error.name === 'SecurityError') return 'Camera access is blocked. Allow camera access for localhost in Chrome site settings, then try again.';
+      if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') return 'No camera was found. Check that a camera is connected and enabled.';
+      if (error.name === 'NotReadableError' || error.name === 'TrackStartError' || error.name === 'TimeoutError') return 'Windows could not start the camera. Close Camera, Teams, Zoom, or other apps using it, then try again.';
+      return error.message || 'Check camera permissions and try again.';
+    }
+    function beginAnalysis() {
+      if (!running || analysisStarted) return;
+      analysisStarted = true;
+      analyzeButton.disabled = true;
+      analyzeButton.textContent = 'Analysis running';
+      setStatus('Analysis started', 'Sending a reduced-size frame to Nemotron about every 3 seconds.', 'ANALYZING', 'warn');
+      addLog('Scene analysis started. Sending camera frames to NVIDIA.');
+      analyzeFrame();
+      analysisTimer = window.setInterval(analyzeFrame, 3000);
+    }
     async function analyzeFrame() {
-      if (!running || requestInFlight || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      if (!running || !analysisStarted || requestInFlight || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       requestInFlight = true;
       try {
         setStep(0);
@@ -129,6 +172,11 @@
         setStep(3);
         setStatus('Analysis complete', 'Nemotron interpreted the latest camera frame.', 'NEMOTRON', 'good');
       } catch (error) {
+        analysisStarted = false;
+        window.clearInterval(analysisTimer);
+        analysisTimer = null;
+        analyzeButton.disabled = !running;
+        analyzeButton.textContent = 'Retry scene analysis';
         setStatus('Analysis needs attention', error.message, 'ERROR', 'warn');
         addLog(`Analysis error: ${error.message}`);
       } finally {
@@ -143,7 +191,22 @@
       }
       try {
         setStatus('Requesting camera', 'Allow camera access when your browser asks.', 'CONNECTING', 'warn');
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        const cameraOptions = [
+          { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+          { video: true, audio: false }
+        ];
+        let lastError;
+        for (const [index, constraints] of cameraOptions.entries()) {
+          try {
+            stream = await requestCamera(constraints);
+            break;
+          } catch (error) {
+            lastError = error;
+            if (index === 0 && (error.name === 'NotAllowedError' || error.name === 'SecurityError')) throw error;
+            if (index === 0) addLog('Preferred camera did not start; trying the default camera.');
+          }
+        }
+        if (!stream) throw lastError || new Error('No usable camera was found.');
         video.srcObject = stream;
         await video.play();
         running = true;
@@ -154,18 +217,33 @@
         document.querySelector('#cameraState').textContent = 'Camera live';
         startButton.disabled = true;
         stopButton.disabled = false;
-        document.querySelector('#objectName').textContent = 'Waiting for first result';
-        setStatus('Camera live', 'Nemotron will analyze a frame about every 3 seconds.', 'READY', 'good');
-        addLog('Camera started. Beginning Nemotron scene analysis.');
-        analyzeFrame();
-        analysisTimer = window.setInterval(analyzeFrame, 3000);
+        analyzeButton.disabled = false;
+        stopButton.disabled = false;
+        document.querySelector('#objectName').textContent = 'Camera preview ready';
+        document.querySelector('#sceneReason').textContent = 'Point the camera at a test scene without people, then click Start scene analysis.';
+        setStatus('Camera live', 'Preview is ready. Start analysis when you are ready to send frames to NVIDIA.', 'CAMERA READY', 'good');
+        addLog('Camera preview started. Scene analysis is waiting for your click.');
       } catch (error) {
-        setStatus('Camera could not start', error.message || 'Check browser camera permission.', 'CAMERA ERROR', 'warn');
-        addLog(`Camera error: ${error.message || 'permission denied'}.`);
+        running = false;
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
+        video.classList.remove('ready');
+        frameBox.classList.remove('has-video');
+        document.querySelector('#placeholder').hidden = false;
+        document.querySelector('#cameraDot').classList.remove('active');
+        document.querySelector('#cameraState').textContent = 'Camera off';
+        startButton.disabled = false;
+        analyzeButton.disabled = true;
+        stopButton.disabled = true;
+        const message = describeCameraError(error);
+        setStatus('Camera could not start', message, 'CAMERA ERROR', 'warn');
+        addLog(`Camera error (${error.name || 'unknown'}): ${message}`);
       }
     }
     function stopCamera() {
       running = false;
+      analysisStarted = false;
       window.clearInterval(analysisTimer);
       analysisTimer = null;
       if (stream) stream.getTracks().forEach(track => track.stop());
@@ -177,6 +255,8 @@
       document.querySelector('#cameraDot').classList.remove('active');
       document.querySelector('#cameraState').textContent = 'Camera off';
       startButton.disabled = false;
+      analyzeButton.disabled = true;
+      analyzeButton.textContent = 'Start scene analysis';
       stopButton.disabled = true;
       setStatus('Waiting for camera', 'Nemotron analysis has not started.', 'STANDBY');
       setStep(0);
@@ -184,6 +264,7 @@
       addLog('Camera stopped.');
     }
     startButton.addEventListener('click', startCamera);
+    analyzeButton.addEventListener('click', beginAnalysis);
     stopButton.addEventListener('click', stopCamera);
     document.querySelectorAll('.cue-button').forEach(button => button.addEventListener('click', () => showCue(button.dataset.cue, 'preview')));
     window.addEventListener('pagehide', stopCamera);

@@ -15,9 +15,12 @@ FrameCue is a HackUTD prototype exploring how camera-based scene interpretation 
    node server.js
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge and press **Start camera**. Allow camera access when the browser asks.
+5. Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge and press **Start camera**. Allow camera access when the browser asks. This opens the preview only.
+6. Point the camera at a test scene without people or confidential information, then press **Start scene analysis**. The app sends a reduced-size frame to NVIDIA about every three seconds. Press **Stop** to end capture and analysis.
 
-The page sends a reduced-size JPEG frame to the local server about every three seconds while the camera is running. The server forwards the image to NVIDIA Nemotron; the browser never receives the API key.
+If the camera does not start, close Windows Camera, Teams, Zoom, and other apps that may be using it, then retry. In Chrome, check the site camera permission for `localhost`.
+
+After you start scene analysis, the page sends a reduced-size JPEG frame to the local server about every three seconds. The server forwards the image to NVIDIA Nemotron; the browser never receives the API key.
 
 ## Phone camera
 
