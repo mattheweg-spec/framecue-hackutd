@@ -1,6 +1,6 @@
 # FrameCue
 
-FrameCue is a HackUTD prototype exploring how camera-based scene interpretation could be represented as a simulated tactile cue. It continuously sends successive camera frames to NVIDIA Nemotron, draws approximate labeled object boxes over the live preview, estimates relative depth and motion from the returned boxes, and highlights the highest-priority target in the simulated wearable.
+FrameCue is a HackUTD prototype exploring how camera-based scene interpretation could be represented as a simulated tactile cue. A compact TensorFlow.js COCO-SSD model detects common objects locally in the browser, while NVIDIA Nemotron provides a slower periodic reference scan. Local detections update boxes and the simulated zone without waiting for the cloud response.
 
 **This is an experimental simulation, not a navigation aid.** Near/middle/far and motion labels are visual estimates, not measured distances or reliable collision predictions. The cue marks a likely obstacle location, not a safe route. Person boxes use the generic label `person`; no identity or face analysis is requested. Do not rely on this prototype for real-world mobility.
 
@@ -15,12 +15,12 @@ FrameCue is a HackUTD prototype exploring how camera-based scene interpretation 
    node server.js
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge, point the camera at a scene without confidential information, then press **Start live scan**. Frames that include people are sent to NVIDIA Nemotron for generic person-box detection. Allow camera access when the browser asks. This opens the preview and begins repeated analysis.
-6. New boxes appear whenever Nemotron returns an interpretation; update speed depends on the model response. Press **Stop** to end capture and analysis.
+5. Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge and wait for the status to show **Local detector ready**. On first use, the page downloads the TensorFlow.js libraries and compact model weights in the background; the camera remains off during this download. Then point the camera at a scene without confidential information and press **Start live scan**. Allow camera access when the browser asks.
+6. Local detections run sequentially at a target interval of 120 ms (up to about 8 scans/second); the actual rate depends on the computer and model inference time. Nemotron receives one reduced-size reference frame about every 12 seconds; if the local model cannot load, FrameCue falls back to slower cloud-only scans. Press **Stop** to end capture and analysis.
 
 If the camera does not start, close Windows Camera, Teams, Zoom, and other apps that may be using it, then retry. In Chrome, check the site camera permission for `localhost`.
 
-While live scan is running, the page sends one reduced-size JPEG frame at a time to the local server and waits for Nemotron before capturing the next frame. The server forwards each image to NVIDIA Nemotron; the browser never receives the API key. The preview shows up to eight estimated boxes, ordered by a rough priority score that combines box size/vertical position with changes in the box between completed analyses. The browser smooths recent center and size changes, then projects each box up to 0.85 seconds ahead between model replies; the simulated zone follows the lead box during that short projection. Predicted boxes are dashed and labeled, then fade because a direction change can invalidate the projection. This is visual interpolation, not new frame-by-frame recognition, and its estimates are noisy, especially in crowds.
+Camera frames are processed locally by COCO-SSD after its JavaScript libraries and model weights are downloaded from the CDNs. Only the periodic smaller reference frame is sent to the local Node server and forwarded to NVIDIA; the browser never receives the API key. If local inference is unavailable, the app uses the slower Nemotron-only mode. Local boxes are ordered by a rough priority score combining box size/vertical position and changes in the box over time. The browser smooths center and size changes, then projects each box up to 0.85 seconds ahead between local detections; predicted boxes are dashed, labeled, and fade because a direction change can invalidate a projection. These estimates are noisy, especially in crowds. COCO-SSD covers 80 common classes and can miss uncommon hazards; this remains a demo, not a navigation aid.
 
 ## Phone camera
 
@@ -28,10 +28,10 @@ Browser camera access requires a secure context. `http://localhost:3000` is suit
 
 ## NVIDIA workflow
 
-1. Capture and resize a camera frame in the browser.
-2. Send the frame to the NVIDIA Nemotron vision endpoint from `server.js`.
-3. Validate approximate normalized object boxes and map the primary object's position deterministically to a simulated zone.
-4. Draw animated corner-bracket boxes over the camera preview, pulse the corresponding UI zone, and display the result in the workflow log.
+1. Run COCO-SSD locally on the browser's video element for frequent detections.
+2. Track the detections locally, estimate rough relative priority, and update the simulated zone.
+3. Periodically send a reduced-size frame to Nemotron for a slower reference scan.
+4. Keep the NVIDIA key on the local server; never expose it in the browser.
 
 The three manual preview buttons are only for checking the visual cue animation if the API is unavailable.
 

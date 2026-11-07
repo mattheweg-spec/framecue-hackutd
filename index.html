@@ -38,7 +38,7 @@
     </header>
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">Observe · Interpret · Cue</p><h2 id="page-title">A scene becomes a tactile signal.</h2></div>
-      <p class="sub">NVIDIA Nemotron repeatedly interprets the live view. Approximate object estimates appear as animated boxes and left, center, or right simulated haptic cues.</p>
+      <p class="sub">A lightweight on-device model tracks common objects for faster updates; NVIDIA Nemotron adds slower scene checks. The wearable shows a simulated directional cue.</p>
     </section>
     <div class="main-grid">
       <section class="card camera-card" aria-label="Camera input">
@@ -50,13 +50,13 @@
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
         <div class="controls"><button class="primary" id="startButton">Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
-        <p class="privacy-note">Live scanning sends frames to NVIDIA Nemotron. People may be detected as anonymous “person” boxes; no identity or face analysis is requested. Between model replies, boxes are briefly projected from recent motion and may drift.</p>
+        <p class="privacy-note">Fast object detection runs in this browser. A smaller reference frame is sent to NVIDIA Nemotron about every 12 seconds. People are labeled only “person”; no identity or face analysis is requested. If the local model cannot load, the app falls back to slower cloud scanning.</p>
       </section>
       <div class="side-stack">
         <section class="card side-card" aria-labelledby="analysis-title">
           <h3 id="analysis-title">Scene interpretation</h3>
           <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
-          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">Start live scan to continuously analyze camera frames with Nemotron.</p></div>
+          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">The local model preloads in the background; start live scan to begin detection.</p></div>
           <div class="steps" aria-label="Processing steps">
             <div class="step" id="stepCapture"><span class="num">1</span><span>Capture a camera frame</span></div>
             <div class="step" id="stepNemotron"><span class="num">2</span><span>Interpret scene with Nemotron</span></div>
@@ -78,7 +78,7 @@
       </div>
     </div>
     <aside class="safety"><strong>Prototype only</strong><span>Depth and movement are rough estimates from changing image boxes, not measured distance or collision prediction. Cues mark a likely obstacle location, not a safe route. Do not rely on this experimental simulation for navigation.</span></aside>
-    <footer class="footer"><span>Camera frames are processed only when sent for analysis.</span><span>FrameCue · HackUTD NVIDIA track prototype</span></footer>
+    <footer class="footer"><span>Local detection stays on this computer; periodic reference frames go to NVIDIA.</span><span>FrameCue · HackUTD NVIDIA track prototype</span></footer>
   </main>
   <script>
     const video = document.querySelector('#video');
@@ -99,6 +99,15 @@
     let previousDetections = [];
     let predictedOverlays = [];
     let animatedCue = 'clear';
+    let localModel = null;
+    let localModelPromise = null;
+    let localScanTimer = null;
+    let localScanBusy = false;
+    let localFps = 0;
+    let localFpsFrames = 0;
+    let localFpsStartedAt = 0;
+    const LOCAL_SCAN_PERIOD_MS = 120;
+    const NEMOTRON_REFERENCE_INTERVAL_MS = 12000;
 
     function stamp() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
     function addLog(message) {
@@ -195,8 +204,12 @@
       });
       if (predictedOverlays.length) {
         const predicting = predictedOverlays.some(entry => now - entry.bornAt > 150);
-        viewLabel.textContent = `${predictedOverlays.length} PRIORITIZED HAZARD${predictedOverlays.length === 1 ? '' : 'S'} · ${predicting ? 'SHORT PREDICTION' : 'ESTIMATES'}`;
-      } else if (running) viewLabel.textContent = 'SCANNING · WAITING FOR DETECTIONS';
+        viewLabel.textContent = localModel
+          ? `${predictedOverlays.length} LOCAL TARGET${predictedOverlays.length === 1 ? '' : 'S'} · ${localFps.toFixed(1)} FPS${predicting ? ' · PREDICTING' : ''}`
+          : `${predictedOverlays.length} PRIORITIZED HAZARD${predictedOverlays.length === 1 ? '' : 'S'} · ${predicting ? 'SHORT PREDICTION' : 'ESTIMATES'}`;
+      } else if (running) viewLabel.textContent = localModel
+        ? `LOCAL · ${localFps.toFixed(1)} FPS · NO KNOWN TARGETS`
+        : 'SCANNING · WAITING FOR DETECTIONS';
       if (running) {
         const lead = predictedOverlays[0];
         const centerX = lead?.currentBox ? (lead.currentBox[0] + lead.currentBox[2]) / 2 : null;
@@ -206,6 +219,33 @@
       requestAnimationFrame(animatePredictions);
     }
     requestAnimationFrame(animatePredictions);
+    function loadScript(url) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        const timeout = window.setTimeout(() => reject(new Error('Local detector library download timed out.')), 25000);
+        script.src = url;
+        script.async = true;
+        script.onload = () => { window.clearTimeout(timeout); resolve(); };
+        script.onerror = () => { window.clearTimeout(timeout); reject(new Error('Could not download the local detector library. Check the internet connection.')); };
+        document.head.append(script);
+      });
+    }
+    function loadLocalDetector() {
+      if (localModel) return Promise.resolve(localModel);
+      if (!localModelPromise) {
+        localModelPromise = (async () => {
+          await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+          await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2/dist/coco-ssd.min.js');
+          if (!window.tf || !window.cocoSsd) throw new Error('The local detector did not initialize.');
+          try {
+            if (window.tf.getBackend() !== 'webgl') await window.tf.setBackend('webgl');
+          } catch { /* TensorFlow.js will keep its available browser backend. */ }
+          await window.tf.ready();
+          return window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
+        })().then(model => { localModel = model; return model; }).catch(error => { localModelPromise = null; throw error; });
+      }
+      return localModelPromise;
+    }
     function prioritizeDetections(detections) {
       const now = performance.now();
       const usedPrevious = new Set();
@@ -263,6 +303,59 @@
       previousDetections = enriched.map(({ label, area, center, width, height, velocity, time }) => ({ label, area, center, width, height, velocity, time }));
       return enriched.sort((a, b) => b.priorityScore - a.priorityScore);
     }
+    async function scanLocally() {
+      if (!running || !localModel || localScanBusy) return;
+      localScanBusy = true;
+      const startedAt = performance.now();
+      try {
+        const predictions = await localModel.detect(video, 8, 0.4);
+        if (!running) return;
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        const objects = predictions.map(item => {
+          const [x, y, boxWidth, boxHeight] = item.bbox;
+          const left = x / width * 1000;
+          const top = y / height * 1000;
+          const right = (x + boxWidth) / width * 1000;
+          const bottom = (y + boxHeight) / height * 1000;
+          return {
+            label: item.class === 'person' ? 'person' : item.class,
+            confidence: item.score,
+            box: [left, top, right, bottom],
+            position: (left + right) / 2 < 333 ? 'left' : (left + right) / 2 > 666 ? 'right' : 'center'
+          };
+        });
+        const prioritized = prioritizeDetections(objects);
+        renderDetections(prioritized);
+        const target = prioritized[0];
+        document.querySelector('#objectName').textContent = target
+          ? `On-device priority: ${target.distanceBand} ${target.label}`
+          : 'No common objects detected locally';
+        document.querySelector('#sceneReason').textContent = target
+          ? `${prioritized.length} local object${prioritized.length === 1 ? '' : 's'} tracked. Box position updates on this computer; Nemotron provides a slower reference check.`
+          : 'The local detector found no objects from its supported classes in this frame.';
+        localFpsFrames++;
+        const now = performance.now();
+        if (!localFpsStartedAt) localFpsStartedAt = now;
+        if (now - localFpsStartedAt >= 1000) {
+          localFps = localFpsFrames * 1000 / (now - localFpsStartedAt);
+          localFpsFrames = 0;
+          localFpsStartedAt = now;
+        }
+      } catch (error) {
+        if (running) {
+          setStatus('Local detector paused', error.message || 'Local detection failed.', 'LOCAL ERROR', 'warn');
+          addLog(`Local detector error: ${error.message || 'unknown error'}.`);
+          localModel = null;
+          localModelPromise = null;
+        }
+      } finally {
+        localScanBusy = false;
+        if (running && localModel) {
+          localScanTimer = window.setTimeout(scanLocally, Math.max(50, LOCAL_SCAN_PERIOD_MS - (performance.now() - startedAt)));
+        }
+      }
+    }
     function requestCamera(constraints, timeoutMs = 10000) {
       let timedOut = false;
       let timer;
@@ -298,8 +391,22 @@
       if (!running || analysisStarted) return;
       analysisStarted = true;
       retryButton.hidden = true;
-        setStatus('Live scene scan', 'The browser briefly predicts box motion between Nemotron replies.', 'ANALYZING', 'warn');
-      addLog('Live scene scan started. Sending camera frames to NVIDIA.');
+      setStatus('Loading local detector', 'Starting on-device object detection; Nemotron will provide a slower reference check.', 'LOCAL MODEL', 'warn');
+      addLog('Starting local object detection and periodic NVIDIA reference checks.');
+      loadLocalDetector().then(model => {
+        if (!running) return;
+        localModel = model;
+        previousDetections = [];
+        localFpsFrames = 0;
+        localFpsStartedAt = performance.now();
+        setStatus('On-device scan active', 'Local scans run sequentially at up to about 8 per second; the actual rate depends on this computer.', 'LOCAL SCAN', 'good');
+        addLog(`Local detector ready (${window.tf.getBackend()}).`);
+        scanLocally();
+      }).catch(error => {
+        if (!running) return;
+        setStatus('Cloud-only fallback', `Local detector could not load. NVIDIA scans continue at a slower rate. ${error.message}`, 'NVIDIA ONLY', 'warn');
+        addLog(`Local detector unavailable: ${error.message}`);
+      });
       analyzeFrame();
     }
     async function analyzeFrame() {
@@ -317,7 +424,11 @@
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL('image/jpeg', 0.68);
         setStep(1);
-        setStatus('Frame captured', 'Sending a reduced-size image to NVIDIA Nemotron.', 'ANALYZING', 'warn');
+        if (localModel) {
+          setStatus('On-device scan active', 'Local boxes keep updating while this periodic NVIDIA reference is processed.', 'LOCAL + NVIDIA', 'good');
+        } else {
+          setStatus('Frame captured', 'Sending a reduced-size image to NVIDIA Nemotron.', 'ANALYZING', 'warn');
+        }
         addLog(`Captured ${canvas.width} × ${canvas.height} camera frame.`);
         const response = await fetch('/api/analyze', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -325,37 +436,49 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Analysis request failed (${response.status}).`);
+        if (!running) return;
         setStep(2);
         const rawObjects = Array.isArray(result.observation.objects) ? result.observation.objects : [];
-        const objects = prioritizeDetections(rawObjects);
-        renderDetections(objects);
-        const objectNames = objects.map(object => object.label).filter(Boolean);
-        addLog(`Nemotron: ${objectNames.length ? objectNames.join(', ') : 'no clear objects detected'}.`);
-        const priorityTarget = objects[0];
-        document.querySelector('#objectName').textContent = priorityTarget
-          ? `Priority: ${priorityTarget.distanceBand} ${priorityTarget.label}`
-          : 'No clear obstacles detected';
-        document.querySelector('#sceneReason').textContent = priorityTarget
-          ? `${priorityTarget.motionLabel}; highest estimated visual priority. ${objects.length} obstacle estimate${objects.length === 1 ? '' : 's'} shown. Boxes are briefly projected between model replies and may drift.`
-          : `${result.observation.reason || 'Scene estimate updated.'} No clear obstacle boxes in this frame.`;
-        showCue(priorityTarget?.position || 'clear');
+        const objectNames = rawObjects.map(object => object.label).filter(Boolean);
+        addLog(`Nemotron reference: ${objectNames.length ? objectNames.join(', ') : 'no clear objects detected'}.`);
+        if (localModel) {
+          setStatus('On-device scan active', 'Fast boxes and simulated cues come from the local detector; Nemotron adds a slower reference.', 'LOCAL + NVIDIA', 'good');
+        } else {
+          const objects = prioritizeDetections(rawObjects);
+          renderDetections(objects);
+          const priorityTarget = objects[0];
+          document.querySelector('#objectName').textContent = priorityTarget
+            ? `Cloud estimate: ${priorityTarget.distanceBand} ${priorityTarget.label}`
+            : 'No clear obstacles detected';
+          document.querySelector('#sceneReason').textContent = priorityTarget
+            ? `${priorityTarget.motionLabel}; highest estimated visual priority. ${objects.length} obstacle estimate${objects.length === 1 ? '' : 's'} shown.`
+            : `${result.observation.reason || 'Scene estimate updated.'} No clear obstacle boxes in this frame.`;
+          showCue(priorityTarget?.position || 'clear');
+          setStatus('Cloud-only scan', 'Local detector unavailable; results update after each NVIDIA response.', 'NVIDIA ONLY', 'warn');
+        }
         setStep(3);
-        setStatus('Live scene scan', 'The browser briefly predicts box motion between Nemotron replies.', 'NEMOTRON', 'good');
       } catch (error) {
-        analysisStarted = false;
         window.clearTimeout(analysisTimer);
         analysisTimer = null;
-        retryButton.hidden = !running;
         const message = error instanceof TypeError
           ? (location.protocol === 'file:'
             ? 'This page was opened directly as a file. Open http://localhost:3000 so the local server can send frames to Nemotron.'
             : 'Cannot reach the local FrameCue server. Confirm node server.js is running, then reload http://localhost:3000.')
           : error.message;
-        setStatus('Analysis needs attention', message, 'ERROR', 'warn');
         addLog(`Analysis error: ${message}`);
+        if (localModel) {
+          setStatus('On-device scan active', `Local detection continues. NVIDIA reference check failed: ${message}`, 'LOCAL ONLY', 'warn');
+        } else {
+          analysisStarted = false;
+          retryButton.hidden = !running;
+          setStatus('Analysis needs attention', message, 'ERROR', 'warn');
+        }
       } finally {
         requestInFlight = false;
-        if (running && analysisStarted) analysisTimer = window.setTimeout(analyzeFrame, 2500);
+        if (running && analysisStarted) {
+          const interval = localModel ? NEMOTRON_REFERENCE_INTERVAL_MS : 2500;
+          analysisTimer = window.setTimeout(analyzeFrame, interval);
+        }
       }
     }
     async function startCamera() {
@@ -393,9 +516,9 @@
         frameBox.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
         startButton.disabled = true;
         stopButton.disabled = false;
-        document.querySelector('#objectName').textContent = 'Starting live scene scan';
-        document.querySelector('#sceneReason').textContent = 'Approximate object boxes will appear as Nemotron returns each result.';
-        addLog('Camera started. Beginning continuous scene analysis.');
+        document.querySelector('#objectName').textContent = 'Loading local detector';
+        document.querySelector('#sceneReason').textContent = 'Opening the camera; local detection will begin when the model is ready.';
+        addLog('Camera started. Initializing local detection.');
         beginAnalysis();
       } catch (error) {
         running = false;
@@ -419,7 +542,9 @@
       running = false;
       analysisStarted = false;
       window.clearTimeout(analysisTimer);
+      window.clearTimeout(localScanTimer);
       analysisTimer = null;
+      localScanTimer = null;
       if (stream) stream.getTracks().forEach(track => track.stop());
       stream = null;
       video.srcObject = null;
@@ -434,7 +559,7 @@
       startButton.disabled = false;
       retryButton.hidden = true;
       stopButton.disabled = true;
-      setStatus('Waiting for camera', 'Nemotron analysis has not started.', 'STANDBY');
+      setStatus('Waiting for camera', 'The local detector starts when you begin a scan.', 'STANDBY');
       setStep(0);
       showCue('clear');
       addLog('Camera stopped.');
@@ -453,6 +578,14 @@
         setStatus('NVIDIA key needed', 'Add your NVIDIA API key to .env.local before analysis.', 'SETUP NEEDED', 'warn');
       }
     }).catch(() => setStatus('Server not running', 'Start the local FrameCue server first.', 'OFFLINE', 'warn'));
+    if (location.protocol !== 'file:') {
+      setStatus('Preparing local detector', 'Downloading the compact model in the background; the camera stays off.', 'LOCAL LOAD', 'warn');
+      loadLocalDetector().then(() => {
+        if (!running) setStatus('Local detector ready', 'Model is preloaded on this computer. The camera stays off until you start a scan.', 'LOCAL READY', 'good');
+      }).catch(error => {
+        if (!running) setStatus('Cloud fallback ready', `The local model could not preload; a scan can still use Nemotron. ${error.message}`, 'NVIDIA FALLBACK', 'warn');
+      });
+    }
   </script>
 </body>
 </html>
