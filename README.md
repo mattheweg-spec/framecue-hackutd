@@ -20,7 +20,7 @@ FrameCue is a HackUTD prototype exploring how camera-based scene interpretation 
 
 If the camera does not start, close Windows Camera, Teams, Zoom, and other apps that may be using it, then retry. In Chrome, check the site camera permission for `localhost`.
 
-While live scan is running, the page sends one reduced-size JPEG frame at a time to the local server and waits for Nemotron before capturing the next frame. The server forwards each image to NVIDIA Nemotron; the browser never receives the API key. The preview shows up to eight estimated boxes, ordered by a rough priority score that combines box size/vertical position with changes in the box between completed analyses. Box growth is treated as a possible approach; center movement is treated as possible lateral motion. These heuristics are noisy, especially in crowds and when the model changes its box placement.
+While live scan is running, the page sends one reduced-size JPEG frame at a time to the local server and waits for Nemotron before capturing the next frame. The server forwards each image to NVIDIA Nemotron; the browser never receives the API key. The preview shows up to eight estimated boxes, ordered by a rough priority score that combines box size/vertical position with changes in the box between completed analyses. The browser smooths recent center and size changes, then projects each box up to 0.85 seconds ahead between model replies; the simulated zone follows the lead box during that short projection. Predicted boxes are dashed and labeled, then fade because a direction change can invalidate the projection. This is visual interpolation, not new frame-by-frame recognition, and its estimates are noisy, especially in crowds.
 
 ## Phone camera
 

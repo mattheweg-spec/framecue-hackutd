@@ -16,6 +16,7 @@
     .video-frame.has-video .placeholder{display:none}
     .detection-box{position:absolute;border:1px solid rgba(255,99,112,.86);background:linear-gradient(135deg,rgba(255,73,91,.12),rgba(255,73,91,.025));box-shadow:0 0 18px rgba(255,64,86,.2),inset 0 0 14px rgba(255,64,86,.08);animation:box-in .32s ease-out,box-breathe 2.4s ease-in-out infinite alternate}
     .detection-box.primary{border-color:#ff6876;box-shadow:0 0 24px rgba(255,64,86,.34),inset 0 0 18px rgba(255,64,86,.13)}
+    .detection-box.predicted{border-style:dashed;filter:saturate(.72)}
     .detection-corner{position:absolute;width:12px;height:12px;border-color:#ffc0a6;border-style:solid;filter:drop-shadow(0 0 5px #ff5d68)}
     .detection-corner.tl{top:-2px;left:-2px;border-width:2px 0 0 2px}.detection-corner.tr{top:-2px;right:-2px;border-width:2px 2px 0 0}.detection-corner.bl{bottom:-2px;left:-2px;border-width:0 0 2px 2px}.detection-corner.br{bottom:-2px;right:-2px;border-width:0 2px 2px 0}
     .detection-tag{position:absolute;top:-25px;left:-1px;max-width:min(220px,70vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;border-radius:7px 7px 7px 2px;background:#b52e45;color:#fff6f1;font:700 10px/1.1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.035em;box-shadow:0 4px 16px #0a1018aa}
@@ -49,7 +50,7 @@
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
         <div class="controls"><button class="primary" id="startButton">Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
-        <p class="privacy-note">Live scanning sends frames to NVIDIA Nemotron. People may be detected as anonymous “person” boxes; no identity or face analysis is requested. Distance and motion are approximate visual estimates.</p>
+        <p class="privacy-note">Live scanning sends frames to NVIDIA Nemotron. People may be detected as anonymous “person” boxes; no identity or face analysis is requested. Between model replies, boxes are briefly projected from recent motion and may drift.</p>
       </section>
       <div class="side-stack">
         <section class="card side-card" aria-labelledby="analysis-title">
@@ -96,6 +97,8 @@
     let requestInFlight = false;
     let analysisTimer = null;
     let previousDetections = [];
+    let predictedOverlays = [];
+    let animatedCue = 'clear';
 
     function stamp() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
     function addLog(message) {
@@ -111,12 +114,16 @@
         document.getElementById(id).classList.toggle('done', index < step);
       });
     }
-    function showCue(cue, source = 'analysis') {
+    function setCueVisual(cue, source = 'analysis') {
       ['left', 'center', 'right'].forEach(name => document.getElementById(`zone${name[0].toUpperCase()}${name.slice(1)}`).classList.toggle('active', cue === name));
       document.querySelectorAll('.cue-button').forEach(button => button.classList.toggle('active', source === 'preview' && button.dataset.cue === cue));
       const chip = document.querySelector('#cueChip');
       chip.textContent = cue === 'clear' ? 'NO OBJECT CUE' : `${cue.toUpperCase()} ZONE`;
       chip.className = `status-chip ${cue === 'clear' ? '' : 'good'}`;
+    }
+    function showCue(cue, source = 'analysis') {
+      setCueVisual(cue, source);
+      animatedCue = cue;
       if (source === 'preview') addLog(`Manual preview: ${cue} zone pulsed.`);
       else addLog(cue === 'clear' ? 'Cue mapping: no directional zone activated.' : `Cue mapping: ${cue} zone marks the highest-priority obstacle location, not an escape route.`);
     }
@@ -129,6 +136,7 @@
     }
     function renderDetections(objects = []) {
       detectionLayer.querySelectorAll('.detection-box').forEach(box => box.remove());
+      predictedOverlays = [];
       const visibleObjects = Array.isArray(objects) ? objects.slice(0, 8) : [];
       visibleObjects.forEach((object, index) => {
         const boxValues = Array.isArray(object.box) ? object.box.map(Number) : [];
@@ -149,13 +157,55 @@
         }
         const tag = document.createElement('span');
         tag.className = 'detection-tag';
-        tag.textContent = `${object.label || 'Object'} · ${object.distanceBand || 'distance unknown'} · ${object.motionLabel || 'motion unknown'}`;
+        const description = `${object.label || 'Object'} · ${object.distanceBand || 'distance unknown'} · ${object.motionLabel || 'motion unknown'}`;
+        tag.textContent = description;
         box.append(tag);
         detectionLayer.append(box);
+        predictedOverlays.push({ element: box, tag, description, object, boxValues: [left, top, right, bottom], bornAt: performance.now() });
       });
-      const count = detectionLayer.querySelectorAll('.detection-box').length;
+      const count = predictedOverlays.length;
       viewLabel.textContent = count ? `${count} PRIORITIZED HAZARD${count === 1 ? '' : 'S'} · ESTIMATES` : 'SCANNING · NO CLEAR OBJECT';
     }
+    function animatePredictions() {
+      const now = performance.now();
+      const clamp = value => Math.min(1000, Math.max(0, value));
+      predictedOverlays = predictedOverlays.filter(entry => {
+        const age = (now - entry.bornAt) / 1000;
+        if (age > 2.8) { entry.element.remove(); return false; }
+        const seconds = Math.min(age, 0.85);
+        const [left, top, right, bottom] = entry.boxValues;
+        const velocity = entry.object.velocity || {};
+        const centerX = (left + right) / 2 + (velocity.x || 0) * seconds;
+        const centerY = (top + bottom) / 2 + (velocity.y || 0) * seconds;
+        const width = Math.max(8, right - left + (velocity.width || 0) * seconds);
+        const height = Math.max(8, bottom - top + (velocity.height || 0) * seconds);
+        const predictedLeft = clamp(centerX - width / 2);
+        const predictedTop = clamp(centerY - height / 2);
+        const predictedRight = clamp(centerX + width / 2);
+        const predictedBottom = clamp(centerY + height / 2);
+        entry.element.style.left = `${predictedLeft / 10}%`;
+        entry.element.style.top = `${predictedTop / 10}%`;
+        entry.element.style.width = `${Math.max(0, predictedRight - predictedLeft) / 10}%`;
+        entry.element.style.height = `${Math.max(0, predictedBottom - predictedTop) / 10}%`;
+        entry.currentBox = [predictedLeft, predictedTop, predictedRight, predictedBottom];
+        entry.element.style.opacity = age <= 1 ? '1' : String(Math.max(0.32, 1 - (age - 1) * 0.38));
+        entry.element.classList.toggle('predicted', age > 0.15);
+        entry.tag.textContent = age > 0.15 ? `PREDICTED · ${entry.description}` : entry.description;
+        return true;
+      });
+      if (predictedOverlays.length) {
+        const predicting = predictedOverlays.some(entry => now - entry.bornAt > 150);
+        viewLabel.textContent = `${predictedOverlays.length} PRIORITIZED HAZARD${predictedOverlays.length === 1 ? '' : 'S'} · ${predicting ? 'SHORT PREDICTION' : 'ESTIMATES'}`;
+      } else if (running) viewLabel.textContent = 'SCANNING · WAITING FOR DETECTIONS';
+      if (running) {
+        const lead = predictedOverlays[0];
+        const centerX = lead?.currentBox ? (lead.currentBox[0] + lead.currentBox[2]) / 2 : null;
+        const nextCue = centerX === null ? 'clear' : centerX < 333 ? 'left' : centerX > 666 ? 'right' : 'center';
+        if (nextCue !== animatedCue) { setCueVisual(nextCue); animatedCue = nextCue; }
+      }
+      requestAnimationFrame(animatePredictions);
+    }
+    requestAnimationFrame(animatePredictions);
     function prioritizeDetections(detections) {
       const now = performance.now();
       const usedPrevious = new Set();
@@ -185,12 +235,20 @@
         }
         let motionLabel = 'motion unknown';
         let motionScore = 0.03;
+        let velocity = { x: 0, y: 0, width: 0, height: 0 };
         if (matched) {
           usedPrevious.add(matched.index);
           const seconds = Math.max(0.5, Math.min(8, (now - matched.time) / 1000));
           const areaGrowthPerSecond = (area - matched.area) / Math.max(matched.area, 0.012) / seconds;
           const objectScale = Math.max(60, (width + height) / 2);
           const centerSpeed = bestDistance / objectScale / seconds;
+          const smoothVelocity = (oldValue, newValue, limit) => Math.max(-limit, Math.min(limit, (oldValue || 0) * 0.55 + newValue * 0.45));
+          velocity = {
+            x: smoothVelocity(matched.velocity?.x, (center.x - matched.center.x) / seconds, 500),
+            y: smoothVelocity(matched.velocity?.y, (center.y - matched.center.y) / seconds, 500),
+            width: smoothVelocity(matched.velocity?.width, (width - matched.width) / seconds, 300),
+            height: smoothVelocity(matched.velocity?.height, (height - matched.height) / seconds, 300)
+          };
           if (areaGrowthPerSecond > 0.1) { motionLabel = 'approaching'; motionScore = 0.26 + Math.min(0.12, areaGrowthPerSecond * 0.08); }
           else if (areaGrowthPerSecond < -0.12) { motionLabel = 'receding'; motionScore = 0.01; }
           else if (centerSpeed > 0.65) { motionLabel = 'moving fast'; motionScore = 0.2; }
@@ -200,9 +258,9 @@
         const distanceBand = proximity >= 0.62 ? 'near' : proximity >= 0.32 ? 'middle' : 'far';
         const inCenterPath = center.x >= 350 && center.x <= 650;
         const priorityScore = proximity * 0.7 + motionScore + (inCenterPath ? 0.05 : 0);
-        return { ...item, proximity, distanceBand, motionLabel, priorityScore, area, center, time: now };
+        return { ...item, proximity, distanceBand, motionLabel, priorityScore, area, center, width, height, velocity, time: now };
       });
-      previousDetections = enriched.map(({ label, area, center, time }) => ({ label, area, center, time }));
+      previousDetections = enriched.map(({ label, area, center, width, height, velocity, time }) => ({ label, area, center, width, height, velocity, time }));
       return enriched.sort((a, b) => b.priorityScore - a.priorityScore);
     }
     function requestCamera(constraints, timeoutMs = 10000) {
@@ -240,7 +298,7 @@
       if (!running || analysisStarted) return;
       analysisStarted = true;
       retryButton.hidden = true;
-      setStatus('Live scene scan', 'Analyzing successive frames and updating object estimates.', 'ANALYZING', 'warn');
+        setStatus('Live scene scan', 'The browser briefly predicts box motion between Nemotron replies.', 'ANALYZING', 'warn');
       addLog('Live scene scan started. Sending camera frames to NVIDIA.');
       analyzeFrame();
     }
@@ -278,11 +336,11 @@
           ? `Priority: ${priorityTarget.distanceBand} ${priorityTarget.label}`
           : 'No clear obstacles detected';
         document.querySelector('#sceneReason').textContent = priorityTarget
-          ? `${priorityTarget.motionLabel}; highest estimated visual priority. ${objects.length} obstacle estimate${objects.length === 1 ? '' : 's'} shown. Depth and motion are approximate.`
+          ? `${priorityTarget.motionLabel}; highest estimated visual priority. ${objects.length} obstacle estimate${objects.length === 1 ? '' : 's'} shown. Boxes are briefly projected between model replies and may drift.`
           : `${result.observation.reason || 'Scene estimate updated.'} No clear obstacle boxes in this frame.`;
         showCue(priorityTarget?.position || 'clear');
         setStep(3);
-        setStatus('Live scene scan', 'Object estimates update as each new frame is interpreted.', 'NEMOTRON', 'good');
+        setStatus('Live scene scan', 'The browser briefly predicts box motion between Nemotron replies.', 'NEMOTRON', 'good');
       } catch (error) {
         analysisStarted = false;
         window.clearTimeout(analysisTimer);
