@@ -37,11 +37,14 @@ The three manual preview buttons are only for checking the visual cue animation 
 
 ## Files
 
-- `index.html` — responsive camera UI, event log, and simulated three-zone wearable.
+- `index.html` — responsive camera UI, event log, and simulated FLUX wearable. Its left / center / right actuator markers are driven directly by the same cue state as the manual preview buttons and obstacle mapping.
 - `server.js` — static web server, protected NVIDIA API call, response validation, and cue mapping.
 - `.env.example` — key setup template; copy to the ignored `.env.local` file.
 - `.gitignore` — excludes local secrets and the uploaded `drive-photos` directory.
-- `CAD/framecue_shoe_exoskeleton.scad` — editable, parameterized over-shoe wearable concept. Open it in OpenSCAD and edit the fit values at the top. Set `show_shoe = false` before exporting a device-only mesh.
+- `CAD/framecue_flux_exoshoe.scad` — current adjustable FLUX concept: a close-fitting side chassis, slim top bands, heel cradle, controller pod, and three separated cue pods. Edit the length and width values at the top in OpenSCAD. This is still a visual concept and needs fit and structural review.
+- `CAD/framecue_flux_exoshoe.stl` — mesh export of the current model for CAD viewing or importing.
+- `CAD/framecue_flux_exoshoe_preview.png` — rendered concept preview.
+- `CAD/framecue_shoe_exoskeleton.scad` and its STL / preview — earlier draft, retained for comparison; superseded by FLUX.
 - `CAD/MATERIALS_AND_FIT.md` — preliminary material comparison, adjustable-fit requirements, and sources.
-- `CAD/framecue_shoe_wearable_concept.stl` — device-only mesh for viewing or importing; it is a prototype assembly, not a validated print-ready aid.
-- `CAD/framecue_shoe_exoskeleton_preview.png` — rendered concept preview.
+
+The editable Tinkercad workspace is named **FrameCue FLUX Exoshoe Concept**. It is a rough native-shape layout of the paired chassis rails and three cue pods. Chrome blocked importing the detailed mesh through the browser upload bridge, so the Tinkercad workspace does not yet contain the full FLUX geometry. The parameterized OpenSCAD source above is the detailed editable model in the meantime.

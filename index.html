@@ -34,6 +34,29 @@
     .main-grid>*{min-width:0}
     .card-head>*,.wearable-top>*,.cue-buttons>*{min-width:0}
     .detection-tag{overflow-wrap:anywhere;word-break:normal}
+    .wearable{background:radial-gradient(ellipse at 52% 48%,#233941 0,#16252c 68%);border-color:#38535a;padding:12px 14px 13px}
+    .wearable-top{align-items:center;margin-bottom:6px;color:#a5bab9;letter-spacing:.12em}
+    .wearable-top span:last-child{color:#c4e9d8}
+    .wearable-svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}
+    .wearable-svg .shoe-shell{fill:#24343b;stroke:#718a8b;stroke-width:2}
+    .wearable-svg .shoe-inset{fill:#19272d;stroke:#435e64;stroke-width:1.2}
+    .wearable-svg .chassis{fill:none;stroke:#91a8a5;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+    .wearable-svg .armor{fill:#31474c;stroke:#668080;stroke-width:1.3}
+    .wearable-svg .accent{fill:none;stroke:#c5f269;stroke-width:2.6;stroke-linecap:round}
+    .wearable-svg .bridge{fill:#566f70;stroke:#9ab4ac;stroke-width:1}
+    .wearable-svg .controller{fill:#101d22;stroke:#78918e;stroke-width:1.5}
+    .wearable-svg .cue-module{opacity:.78;transition:opacity .22s ease,filter .22s ease}
+    .wearable-svg .cue-module .module-ring{fill:#15252a;stroke:#8b9e98;stroke-width:2;transition:stroke .22s ease,stroke-width .22s ease}
+    .wearable-svg .cue-module .module-core{fill:#5b7875;transition:fill .22s ease}
+    .wearable-svg .cue-module.active{opacity:1;filter:drop-shadow(0 0 7px currentColor)}
+    .wearable-svg .cue-module.active .module-ring{stroke:currentColor;stroke-width:3.5}
+    .wearable-svg .cue-module.active .module-core{fill:currentColor}
+    .wearable-svg .cue-module.left{color:#71e2dc}
+    .wearable-svg .cue-module.center{color:#f5c65f}
+    .wearable-svg .cue-module.right{color:#ff8277}
+    .wearable-svg text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em}
+    .zone-labels{font-size:9px;letter-spacing:.16em;color:#abc0bc;margin-top:0}
+    @media(max-width:520px){.wearable-svg{max-height:178px}.wearable{padding:10px}}
     @media(max-width:420px){.status-row{gap:8px}.status-chip{max-width:42%}.cue-button{font-size:9px}.track{font-size:10px;padding:7px 9px}}
   </style>
 </head>
@@ -72,9 +95,25 @@
         </section>
         <section class="card side-card" aria-labelledby="cue-title">
           <div class="card-head"><h3 id="cue-title">Simulated wearable</h3><span class="status-chip" id="cueChip">NO CUE</span></div>
-          <div class="wearable" role="img" aria-label="Three-zone wearable simulation: left, center, and right pressure zones">
-            <div class="wearable-top"><span>Exoskeleton concept</span><span>Haptic output</span></div>
-            <div class="exosuit"><div class="zone" id="zoneLeft">PULSE</div><div class="zone center" id="zoneCenter">PULSE</div><div class="zone" id="zoneRight">PULSE</div></div>
+          <div class="wearable" role="img" aria-label="FLUX over-shoe exoskeleton concept with a close-fitting side chassis and three simulated tactile cue modules">
+            <div class="wearable-top"><span>FLUX / OVER-SHOE</span><span>ASSISTIVE NAV</span></div>
+            <svg class="wearable-svg" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs><linearGradient id="shellShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40585d"/><stop offset="1" stop-color="#1c2b31"/></linearGradient></defs>
+              <path class="shoe-shell" fill="url(#shellShade)" d="M59 107c4-20 20-38 43-47l46-18c25-10 54-14 83-13l75 5c34 2 58 14 72 37l22 36c8 13 8 27-2 37-10 10-30 15-58 17l-196 12c-42 2-69-4-82-18-8-9-10-20-3-48Z"/>
+              <path class="shoe-inset" d="m95 104 36-30 34-14c23-9 51-13 76-12l66 5c23 2 39 9 50 22l19 26-65 19-179 11-42-9Z"/>
+              <path fill="none" stroke="#688083" stroke-width="1.5" d="m123 78 37 17 35 1 38-16 43 5 33 19m-176-3 46 19 38-12 31 11 42-17"/>
+              <path class="chassis" d="M73 111 82 77l32-25 49-18m-87 77 4 39 29 22 247-16 30-16-2-32m-280 48 8-31 1-26m259 46-2-24 11-29"/>
+              <path class="armor" d="m84 79 31-25 27-11-7 26-34 25-20 6Zm73-36 38-11-7 24-38 13Zm45-12 41-2-6 24-42 2Zm51 0 40 3-4 25-42-4Zm52 8 29 13 13 21-40-9-17-22Z"/>
+              <path class="accent" d="m87 82 26-21m49-18 24-7m52-6 28 1m45 5 19 11m-220 76 39 11 43-4 39 5 45-7 40-3"/>
+              <path class="bridge" d="m104 52 8 4-9 48-7-2Zm217 6 8 4-10 45-7-2Z"/>
+              <path class="controller" d="m186 39 9-14 54 1 12 13-7 17-59 1Z"/><path class="accent" d="m204 31 39 1"/>
+              <g class="cue-module left" id="zoneLeft"><circle class="module-ring" cx="286" cy="75" r="13"/><circle class="module-core" cx="286" cy="75" r="5"/></g>
+              <g class="cue-module center" id="zoneCenter"><circle class="module-ring" cx="318" cy="82" r="13"/><circle class="module-core" cx="318" cy="82" r="5"/></g>
+              <g class="cue-module right" id="zoneRight"><circle class="module-ring" cx="348" cy="91" r="13"/><circle class="module-core" cx="348" cy="91" r="5"/></g>
+              <text x="28" y="191" fill="#b6ccbf" font-size="8">LOW-PROFILE SIDE CHASSIS</text>
+              <text x="312" y="191" fill="#b6ccbf" font-size="8">3 CUE PODS</text>
+              <path class="accent" d="M26 178h22m345 0h20"/>
+            </svg>
             <div class="zone-labels"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
           </div>
           <div class="cue-buttons" aria-label="Manual cue preview controls"><button class="cue-button" data-cue="left">Preview left</button><button class="cue-button" data-cue="center">Preview center</button><button class="cue-button" data-cue="right">Preview right</button></div>

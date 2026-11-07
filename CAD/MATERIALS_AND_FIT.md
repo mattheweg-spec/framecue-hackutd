@@ -1,10 +1,12 @@
 # FrameCue shoe-mounted wearable: material and fit notes
 
+> **Current concept:** FLUX is the latest visual direction: a close-fitting, segmented over-shoe chassis with two narrow adjustable top bands, a heel cradle, and three distinct tactile actuator positions. The older open-rail model below is retained as preliminary material research, not the current design. FLUX is a concept and has not been wear-tested or structurally validated.
+
 ## Design brief
 
 Build a conspicuous, open-frame wearable that straps **over a closed shoe**. The wearer should not need a foot scan or a custom shoe. The frame must leave the sole, toe box, and normal shoe fit unobstructed. A high-contrast outer badge should make the device look intentional and assistive, while the prototype remains clearly marked as experimental.
 
-The first model is a visual/fit prototype. It does not generate real pressure, provide a safe route, or establish that a user can perceive cues through their particular shoe. Test the fit while seated first; do not use it for navigation.
+The model is a visual/fit prototype. It does not generate real pressure, provide a safe route, or establish that a user can perceive cues through their particular shoe. Test any physical mock-up while seated first; do not use it for navigation.
 
 ## Candidate materials
 
@@ -41,8 +43,8 @@ One open-access study comparing custom EVA and TPU foot orthoses found comfort b
 
 ## Fit rules carried into CAD
 
-- Fit **over the shoe**, with two adjustable straps and strap anchors that can move along the side rails. This avoids making the user scan their foot or replacing their shoe.
-- Fit over closed shoes of different lengths and widths by repositioning the straps and changing strap length. The demonstration model exposes shoe length, width, and upper height as editable parameters; the model is not claiming a validated universal size range.
+- Fit **over the shoe**, with two slim adjustable bands and low-profile anchors. This avoids making the user scan their foot or replacing their shoe.
+- The FLUX source exposes shoe length and width fit offsets as adjustable parameters; those values are design controls, not a validated universal fit range.
 - Keep the outsole and bottom of the shoe completely clear. Do not put a part underfoot or across the toe.
 - Use a replaceable pad at each shoe-contact point, rounded edges, and broad straps. Avoid tight straps and concentrated contact points.
 - Put the recognizable high-visibility/reflective badge on the outside of the shoe, where another person can see it. A label such as **ASSISTIVE NAVIGATION** can clarify its purpose; visibility alone cannot guarantee that strangers will identify it correctly.
