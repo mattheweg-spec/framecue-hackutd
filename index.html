@@ -55,6 +55,16 @@
     .wearable-svg .cue-module.center{color:#f5c65f}
     .wearable-svg .cue-module.right{color:#ff8277}
     .wearable-svg text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em}
+    .assembly-viewer{position:relative;width:100%;height:clamp(190px,46vw,252px);overflow:hidden;border:1px solid #385057;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#263b42,#111d23 78%);touch-action:none}
+    .assembly-viewer canvas{display:block;width:100%;height:100%;outline:none}
+    .assembly-viewer[hidden],.wearable-fallback[hidden]{display:none}
+    .assembly-loading{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:#a9c0bd;font-size:11px;line-height:1.5;background:#132027aa}
+    .assembly-viewer.ready .assembly-loading{display:none}
+    .assembly-viewer.error .assembly-loading{color:#ffd69a}
+    .assembly-hint{position:absolute;left:9px;bottom:8px;color:#9cb3b2;background:#0b141acc;border:1px solid #3b5156;border-radius:999px;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
+    .assembly-reset{position:absolute;right:9px;bottom:8px;border:1px solid #536a70;border-radius:999px;background:#14242bdc;color:#d9e8e5;padding:5px 9px;font-size:9px}
+    .assembly-readout{position:absolute;right:9px;top:8px;border:1px solid #3b555b;border-radius:999px;background:#101b20dc;color:#c7d8d6;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
+    .assembly-note{margin:8px 2px 0;color:#9dafb3;font-size:9px;line-height:1.45}
     .zone-labels{font-size:9px;letter-spacing:.16em;color:#abc0bc;margin-top:0}
     @media(max-width:520px){.wearable-svg{max-height:178px}.wearable{padding:10px}}
     @media(max-width:420px){.status-row{gap:8px}.status-chip{max-width:42%}.cue-button{font-size:9px}.track{font-size:10px;padding:7px 9px}}
@@ -95,9 +105,17 @@
         </section>
         <section class="card side-card" aria-labelledby="cue-title">
           <div class="card-head"><h3 id="cue-title">Simulated wearable</h3><span class="status-chip" id="cueChip">NO CUE</span></div>
-          <div class="wearable" role="img" aria-label="FLUX over-shoe exoskeleton concept with a close-fitting side chassis and three simulated tactile cue modules">
+          <div class="wearable" role="group" aria-label="FLUX over-shoe exoskeleton concept with interactive simulated tactile cue modules">
             <div class="wearable-top"><span>FLUX / OVER-SHOE</span><span>ASSISTIVE NAV</span></div>
-            <svg class="wearable-svg" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <div class="assembly-viewer" id="assemblyViewer" aria-label="Interactive 3D FrameCue Fusion assembly">
+              <canvas id="assemblyCanvas" tabindex="0" aria-label="3D assembly. Drag to rotate; use the mouse wheel or pinch to zoom."></canvas>
+              <div class="assembly-loading" id="assemblyLoading" role="status">Loading the editable Fusion assembly…</div>
+              <div class="assembly-readout" id="assemblyReadout">PRESSURE STATE · CLEAR</div>
+              <span class="assembly-hint">DRAG TO ROTATE · SCROLL TO ZOOM</span>
+              <button class="assembly-reset" id="assemblyReset" type="button">Reset view</button>
+            </div>
+            <p class="assembly-note">Live local detections animate the matching pressure bladder. Drag to inspect the CAD assembly; this is a visual simulation, not physical pressure.</p>
+            <svg class="wearable-svg wearable-fallback" id="wearableFallback" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden>
               <defs><linearGradient id="shellShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40585d"/><stop offset="1" stop-color="#1c2b31"/></linearGradient></defs>
               <path class="shoe-shell" fill="url(#shellShade)" d="M59 107c4-20 20-38 43-47l46-18c25-10 54-14 83-13l75 5c34 2 58 14 72 37l22 36c8 13 8 27-2 37-10 10-30 15-58 17l-196 12c-42 2-69-4-82-18-8-9-10-20-3-48Z"/>
               <path class="shoe-inset" d="m95 104 36-30 34-14c23-9 51-13 76-12l66 5c23 2 39 9 50 22l19 26-65 19-179 11-42-9Z"/>
@@ -174,6 +192,7 @@
     function setCueVisual(cue, source = 'analysis') {
       ['left', 'center', 'right'].forEach(name => document.getElementById(`zone${name[0].toUpperCase()}${name.slice(1)}`).classList.toggle('active', cue === name));
       document.querySelectorAll('.cue-button').forEach(button => button.classList.toggle('active', source === 'preview' && button.dataset.cue === cue));
+      window.frameCue3D?.setCue(cue, source);
       const chip = document.querySelector('#cueChip');
       chip.textContent = cue === 'clear' ? 'NO OBJECT CUE' : `${cue.toUpperCase()} ZONE`;
       chip.className = `status-chip ${cue === 'clear' ? '' : 'good'}`;
@@ -662,5 +681,9 @@
       });
     }
   </script>
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}
+  </script>
+  <script type="module" src="/cad-viewer.js" onerror="document.querySelector('#assemblyViewer').hidden=true;document.querySelector('#wearableFallback').hidden=false"></script>
 </body>
 </html>

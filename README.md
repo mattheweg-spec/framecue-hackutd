@@ -33,11 +33,13 @@ Browser camera access requires a secure context. `http://localhost:3000` is suit
 3. Periodically send a reduced-size frame to Nemotron for a slower reference scan.
 4. Keep the NVIDIA key on the local server; never expose it in the browser.
 
-The three manual preview buttons are only for checking the visual cue animation if the API is unavailable.
+The 3D viewer loads the editable-component Fusion assembly exported to `CAD/web-model/`. Drag to rotate the model and scroll or pinch to zoom. The same left / center / right cue selected by local detections and Nemotron smoothly lifts, expands, and illuminates the matching bladder mesh; the preview buttons can trigger each state manually. This is a visual animation of the proposed pressure cue, not a pressure simulation or physical actuator.
 
 ## Files
 
-- `index.html` — responsive camera UI, event log, and simulated FLUX wearable. Its left / center / right actuator markers are driven directly by the same cue state as the manual preview buttons and obstacle mapping.
+- `index.html` — responsive camera UI, event log, and simulated FLUX wearable controls.
+- `cad-viewer.js` — interactive Three.js viewer and animated bladder meshes driven by the app's cue state.
+- `CAD/web-model/framecue-assembly.obj` and `.mtl` — Fusion assembly mesh and materials used by the web viewer.
 - `server.js` — static web server, protected NVIDIA API call, response validation, and cue mapping.
 - `.env.example` — key setup template; copy to the ignored `.env.local` file.
 - `.gitignore` — excludes local secrets and the uploaded `drive-photos` directory.
