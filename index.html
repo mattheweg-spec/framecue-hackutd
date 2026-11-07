@@ -52,7 +52,7 @@
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
         <div class="controls"><button class="primary" id="startButton">Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
-        <p class="privacy-note">Live scanning sends camera frames to NVIDIA Nemotron as they are analyzed. Aim at a scene without people or confidential information. Object boxes are approximate AI estimates.</p>
+        <p class="privacy-note">Live scanning sends frames to NVIDIA Nemotron. People may be detected as anonymous “person” boxes; no identity or face analysis is requested. Distance and motion are approximate visual estimates.</p>
       </section>
       <div class="side-stack">
         <section class="card side-card" aria-labelledby="analysis-title">
@@ -79,7 +79,7 @@
         </section>
       </div>
     </div>
-    <aside class="safety"><strong>Prototype only</strong><span>Object labels and boxes are approximate AI estimates. Cues mark where an object appears in the camera view; they do not indicate a safe route. This experimental simulation must not be relied on for navigation.</span></aside>
+    <aside class="safety"><strong>Prototype only</strong><span>Depth and movement are rough estimates from changing image boxes, not measured distance or collision prediction. Cues mark a likely obstacle location, not a safe route. Do not rely on this experimental simulation for navigation.</span></aside>
     <footer class="footer"><span>Camera frames are processed only when sent for analysis.</span><span>FrameCue · HackUTD NVIDIA track prototype</span></footer>
   </main>
   <script>
@@ -98,6 +98,7 @@
     let analysisStarted = false;
     let requestInFlight = false;
     let analysisTimer = null;
+    let previousDetections = [];
 
     function stamp() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
     function addLog(message) {
@@ -120,7 +121,7 @@
       chip.textContent = cue === 'clear' ? 'NO OBJECT CUE' : `${cue.toUpperCase()} ZONE`;
       chip.className = `status-chip ${cue === 'clear' ? '' : 'good'}`;
       if (source === 'preview') addLog(`Manual preview: ${cue} zone pulsed.`);
-      else addLog(cue === 'clear' ? 'Cue mapping: no directional zone activated.' : `Cue mapping: ${cue} zone pulsed for object position.`);
+      else addLog(cue === 'clear' ? 'Cue mapping: no directional zone activated.' : `Cue mapping: ${cue} zone marks the highest-priority obstacle location, not an escape route.`);
     }
     function setStatus(title, caption, chip, kind = '') {
       document.querySelector('#analysisTitle').textContent = title;
@@ -131,7 +132,7 @@
     }
     function renderDetections(objects = []) {
       detectionLayer.querySelectorAll('.detection-box').forEach(box => box.remove());
-      const visibleObjects = Array.isArray(objects) ? objects.slice(0, 6) : [];
+      const visibleObjects = Array.isArray(objects) ? objects.slice(0, 8) : [];
       visibleObjects.forEach((object, index) => {
         const boxValues = Array.isArray(object.box) ? object.box.map(Number) : [];
         if (boxValues.length !== 4 || !boxValues.every(Number.isFinite)) return;
@@ -151,12 +152,61 @@
         }
         const tag = document.createElement('span');
         tag.className = 'detection-tag';
-        tag.textContent = `${object.label || 'Object'} · ${Math.round((Number(object.confidence) || 0) * 100)}%`;
+        tag.textContent = `${object.label || 'Object'} · ${object.distanceBand || 'distance unknown'} · ${object.motionLabel || 'motion unknown'}`;
         box.append(tag);
         detectionLayer.append(box);
       });
       const count = detectionLayer.querySelectorAll('.detection-box').length;
-      viewLabel.textContent = count ? `${count} ESTIMATED OBJECT${count === 1 ? '' : 'S'} · NEMOTRON` : 'SCANNING · NO CLEAR OBJECT';
+      viewLabel.textContent = count ? `${count} PRIORITIZED HAZARD${count === 1 ? '' : 'S'} · ESTIMATES` : 'SCANNING · NO CLEAR OBJECT';
+    }
+    function prioritizeDetections(detections) {
+      const now = performance.now();
+      const usedPrevious = new Set();
+      const clamp01 = value => Math.min(1, Math.max(0, value));
+      const centerOf = box => ({ x: (box[0] + box[2]) / 2, y: (box[1] + box[3]) / 2 });
+      const enriched = detections.map(item => {
+        const box = item.box.map(Number);
+        const width = Math.max(1, box[2] - box[0]);
+        const height = Math.max(1, box[3] - box[1]);
+        const center = centerOf(box);
+        const area = width * height / 1_000_000;
+        let proximity = Number(item.proximity);
+        if (!Number.isFinite(proximity)) proximity = height / 1000 * 1.4 + Math.max(0, box[3] / 1000 - 0.55) * 0.28;
+        const depth = String(item.depth || '').toLowerCase();
+        if (depth === 'near') proximity = Math.max(proximity, 0.82);
+        else if (depth === 'middle') proximity = Math.max(proximity, 0.48);
+        else if (depth === 'far') proximity = Math.min(proximity, 0.28);
+        proximity = clamp01(proximity);
+
+        let matched = null;
+        let bestDistance = Infinity;
+        for (let index = 0; index < previousDetections.length; index++) {
+          const previous = previousDetections[index];
+          if (usedPrevious.has(index) || previous.label !== item.label) continue;
+          const distance = Math.hypot(center.x - previous.center.x, center.y - previous.center.y);
+          if (distance < bestDistance) { bestDistance = distance; matched = { ...previous, index }; }
+        }
+        let motionLabel = 'motion unknown';
+        let motionScore = 0.03;
+        if (matched) {
+          usedPrevious.add(matched.index);
+          const seconds = Math.max(0.5, Math.min(8, (now - matched.time) / 1000));
+          const areaGrowthPerSecond = (area - matched.area) / Math.max(matched.area, 0.012) / seconds;
+          const objectScale = Math.max(60, (width + height) / 2);
+          const centerSpeed = bestDistance / objectScale / seconds;
+          if (areaGrowthPerSecond > 0.1) { motionLabel = 'approaching'; motionScore = 0.26 + Math.min(0.12, areaGrowthPerSecond * 0.08); }
+          else if (areaGrowthPerSecond < -0.12) { motionLabel = 'receding'; motionScore = 0.01; }
+          else if (centerSpeed > 0.65) { motionLabel = 'moving fast'; motionScore = 0.2; }
+          else if (centerSpeed > 0.2) { motionLabel = 'moving'; motionScore = 0.1; }
+          else { motionLabel = 'stationary'; motionScore = 0.02; }
+        }
+        const distanceBand = proximity >= 0.62 ? 'near' : proximity >= 0.32 ? 'middle' : 'far';
+        const inCenterPath = center.x >= 350 && center.x <= 650;
+        const priorityScore = proximity * 0.7 + motionScore + (inCenterPath ? 0.05 : 0);
+        return { ...item, proximity, distanceBand, motionLabel, priorityScore, area, center, time: now };
+      });
+      previousDetections = enriched.map(({ label, area, center, time }) => ({ label, area, center, time }));
+      return enriched.sort((a, b) => b.priorityScore - a.priorityScore);
     }
     function requestCamera(constraints, timeoutMs = 10000) {
       let timedOut = false;
@@ -222,13 +272,19 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Analysis request failed (${response.status}).`);
         setStep(2);
-        const objects = Array.isArray(result.observation.objects) ? result.observation.objects : [];
+        const rawObjects = Array.isArray(result.observation.objects) ? result.observation.objects : [];
+        const objects = prioritizeDetections(rawObjects);
         renderDetections(objects);
         const objectNames = objects.map(object => object.label).filter(Boolean);
         addLog(`Nemotron: ${objectNames.length ? objectNames.join(', ') : 'no clear objects detected'}.`);
-        document.querySelector('#objectName').textContent = objectNames.length ? objectNames.join(', ') : 'No clear objects detected';
-        document.querySelector('#sceneReason').textContent = `${result.observation.reason || 'Scene estimate updated.'} ${objects.length} approximate box${objects.length === 1 ? '' : 'es'} shown.`;
-        showCue(result.cue);
+        const priorityTarget = objects[0];
+        document.querySelector('#objectName').textContent = priorityTarget
+          ? `Priority: ${priorityTarget.distanceBand} ${priorityTarget.label}`
+          : 'No clear obstacles detected';
+        document.querySelector('#sceneReason').textContent = priorityTarget
+          ? `${priorityTarget.motionLabel}; highest estimated visual priority. ${objects.length} obstacle estimate${objects.length === 1 ? '' : 's'} shown. Depth and motion are approximate.`
+          : `${result.observation.reason || 'Scene estimate updated.'} No clear obstacle boxes in this frame.`;
+        showCue(priorityTarget?.position || 'clear');
         setStep(3);
         setStatus('Live scene scan', 'Object estimates update as each new frame is interpreted.', 'NEMOTRON', 'good');
       } catch (error) {
@@ -319,6 +375,7 @@
       frameBox.classList.remove('has-video');
       frameBox.style.aspectRatio = '';
       renderDetections([]);
+      previousDetections = [];
       document.querySelector('#placeholder').hidden = false;
       document.querySelector('#cameraDot').classList.remove('active');
       document.querySelector('#cameraState').textContent = 'Camera off';

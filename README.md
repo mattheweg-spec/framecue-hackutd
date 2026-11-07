@@ -1,8 +1,8 @@
 # FrameCue
 
-FrameCue is a HackUTD prototype exploring how camera-based scene interpretation could be represented as a simulated tactile cue. It continuously sends successive camera frames to NVIDIA Nemotron, draws approximate labeled object boxes over the live preview, maps the nearest reported object's position to a left, center, or right on-screen wearable zone, and records each step in a workflow log.
+FrameCue is a HackUTD prototype exploring how camera-based scene interpretation could be represented as a simulated tactile cue. It continuously sends successive camera frames to NVIDIA Nemotron, draws approximate labeled object boxes over the live preview, estimates relative depth and motion from the returned boxes, and highlights the highest-priority target in the simulated wearable.
 
-**This is an experimental simulation, not a navigation aid.** Object labels and boxes are approximate AI estimates. It does not tell a person which way is safe to walk and must not be relied on for real-world mobility.
+**This is an experimental simulation, not a navigation aid.** Near/middle/far and motion labels are visual estimates, not measured distances or reliable collision predictions. The cue marks a likely obstacle location, not a safe route. Person boxes use the generic label `person`; no identity or face analysis is requested. Do not rely on this prototype for real-world mobility.
 
 ## Run it on Windows
 
@@ -15,12 +15,12 @@ FrameCue is a HackUTD prototype exploring how camera-based scene interpretation 
    node server.js
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge, point the camera at a scene without people or confidential information, then press **Start live scan**. Allow camera access when the browser asks. This opens the preview and begins repeated analysis.
+5. Open [http://localhost:3000](http://localhost:3000) in Chrome or Edge, point the camera at a scene without confidential information, then press **Start live scan**. Frames that include people are sent to NVIDIA Nemotron for generic person-box detection. Allow camera access when the browser asks. This opens the preview and begins repeated analysis.
 6. New boxes appear whenever Nemotron returns an interpretation; update speed depends on the model response. Press **Stop** to end capture and analysis.
 
 If the camera does not start, close Windows Camera, Teams, Zoom, and other apps that may be using it, then retry. In Chrome, check the site camera permission for `localhost`.
 
-While live scan is running, the page sends one reduced-size JPEG frame at a time to the local server and waits for Nemotron before capturing the next frame. The server forwards each image to NVIDIA Nemotron; the browser never receives the API key. The preview shows estimated boxes only after an analysis response arrives.
+While live scan is running, the page sends one reduced-size JPEG frame at a time to the local server and waits for Nemotron before capturing the next frame. The server forwards each image to NVIDIA Nemotron; the browser never receives the API key. The preview shows up to eight estimated boxes, ordered by a rough priority score that combines model depth category, box size/vertical position, and changes in the box between completed analyses. Box growth is treated as a possible approach; center movement is treated as possible lateral motion. These heuristics are noisy, especially in crowds and when the model changes its box placement.
 
 ## Phone camera
 
