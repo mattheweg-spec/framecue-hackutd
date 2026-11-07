@@ -40,7 +40,7 @@
     </header>
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">Observe · Interpret · Cue</p><h2 id="page-title">A scene becomes a tactile signal.</h2></div>
-      <p class="sub">A live camera frame is interpreted by NVIDIA Nemotron, then mapped to one of three simulated wearable zones.</p>
+      <p class="sub">NVIDIA Nemotron repeatedly interprets the live view. Approximate object estimates appear as animated boxes and left, center, or right simulated haptic cues.</p>
     </section>
     <div class="main-grid">
       <section class="card camera-card" aria-label="Camera input">
@@ -48,7 +48,7 @@
         <div class="video-frame" id="videoFrame">
           <video id="video" playsinline muted></video>
           <div class="detection-layer" id="detectionLayer" aria-hidden="true"><div class="scan-beam"></div></div>
-          <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true">◉</div><strong>Ready when you are</strong><span>Start the camera to begin scene analysis.</span></div>
+          <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true">◉</div><strong>Ready when you are</strong><span>Start live scan to open the camera and analyze successive frames.</span></div>
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
         <div class="controls"><button class="primary" id="startButton">Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
