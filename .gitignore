@@ -1,0 +1,7 @@
+.env.local
+.env
+.env.*
+!.env.example
+drive-photos/
+node_modules/
+npm-debug.log*

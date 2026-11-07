@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <title>FrameCue — camera to tactile cue</title>
+  <style>
+    :root{color-scheme:dark;--bg:#101820;--panel:#17232c;--panel2:#1c2b35;--line:#2c3c46;--text:#eff5f3;--muted:#a4b4b8;--mint:#b6f2d7;--cyan:#8ee7e2;--amber:#ffd69a;--danger:#ff9d9d;--radius:20px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 10% 0%,#20353d 0,transparent 37%),var(--bg);color:var(--text);min-height:100vh}button{font:inherit;color:inherit;cursor:pointer}button:focus-visible{outline:3px solid var(--mint);outline-offset:3px}.app{max-width:1200px;margin:auto;padding:30px 24px 28px}.topbar{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:34px}.brand{display:flex;align-items:center;gap:13px}.brandmark{width:42px;height:42px;border:1px solid #4e736f;border-radius:14px;display:grid;place-items:center;color:var(--mint);background:#1d3537;font-size:20px}.brand h1{font-size:17px;margin:0;letter-spacing:.02em}.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}.track{border:1px solid #2e514d;background:#1b3533;color:var(--mint);border-radius:999px;padding:8px 12px;font-size:12px;letter-spacing:.04em}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:24px}.eyebrow{color:var(--mint);text-transform:uppercase;font-size:11px;letter-spacing:.17em;font-weight:700;margin:0 0 10px}.intro h2{font-weight:550;font-size:clamp(28px,4vw,45px);letter-spacing:-.045em;line-height:1.06;margin:0;max-width:670px}.intro .sub{color:var(--muted);max-width:360px;line-height:1.6;font-size:14px;margin:0}.main-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(330px,.9fr);gap:18px}.card{background:linear-gradient(160deg,rgba(31,47,57,.98),rgba(22,33,42,.98));border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.camera-card{padding:18px}.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.card-head h3,.side-card h3{margin:0;font-size:14px;font-weight:650}.live-pill{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}.dot{width:7px;height:7px;background:#64767b;border-radius:50%}.dot.active{background:var(--mint);box-shadow:0 0 12px #8de8c9}.video-frame{background:#0c1216;aspect-ratio:16/10;border-radius:14px;overflow:hidden;position:relative;display:grid;place-items:center;border:1px solid #2d4149}.video-frame video{width:100%;height:100%;object-fit:cover;display:none;transform:scaleX(1)}.video-frame video.ready{display:block}.placeholder{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:20px}.camera-icon{font-size:28px;color:#8ee7e2;margin-bottom:10px}.placeholder strong{font-size:14px}.placeholder span{font-size:12px;color:var(--muted);margin-top:6px}.view-label{position:absolute;bottom:12px;left:12px;background:rgba(8,16,19,.78);border:1px solid #506168;border-radius:999px;padding:6px 9px;font-size:10px;color:#d6e1e0;display:none}.video-frame.has-video .view-label{display:block}.controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.primary,.secondary,.cue-button{border:0;border-radius:11px;padding:11px 15px;font-size:12px;font-weight:650;transition:transform .15s,background .15s}.primary{background:var(--mint);color:#10201b}.primary:hover{background:#d0ffe9;transform:translateY(-1px)}.secondary{background:#293a44;color:#e3eeee;border:1px solid #40535d}.secondary:hover,.cue-button:hover{background:#354c56}.secondary:disabled{opacity:.5;cursor:not-allowed}.side-stack{display:grid;gap:18px;align-content:start}.side-card{padding:18px}.status-row{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:10px 0 16px}.status-title{font-size:13px;font-weight:650}.status-caption{font-size:11px;color:var(--muted);margin-top:4px}.status-chip{font-size:10px;color:var(--muted);background:#293941;border-radius:999px;padding:6px 9px;white-space:nowrap}.status-chip.good{color:var(--mint);background:#1c3b35}.status-chip.warn{color:var(--amber);background:#47391f}.model-result{padding:12px 13px;border-radius:13px;background:#111b21;border:1px solid #2d3e47;min-height:74px}.model-result strong{display:block;font-size:12px;margin-bottom:5px}.model-result p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}.wearable{border:1px solid #344850;background:linear-gradient(135deg,#23343c,#17252c);border-radius:16px;padding:15px;margin-top:14px}.wearable-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:13px}.exosuit{height:145px;display:flex;align-items:center;justify-content:center;gap:14px;position:relative}.exosuit:before{content:"";position:absolute;top:11px;bottom:11px;left:50%;width:30px;transform:translateX(-50%);border:2px solid #54716f;border-radius:18px 18px 12px 12px;background:#253b40}.zone{position:relative;z-index:1;width:68px;height:50px;border:1px solid #52706f;border-radius:14px;background:#1a292f;display:grid;place-items:center;color:#9fb6b5;font-size:10px;transition:all .2s}.zone.center{margin-top:-43px}.zone.active{background:#305d54;color:#d8fff0;border-color:var(--mint);box-shadow:0 0 25px #86e6be55;transform:scale(1.06)}.zone.center.active{transform:translateY(-2px) scale(1.06)}.zone-labels{display:flex;justify-content:space-around;color:#a7b8ba;font-size:10px;margin-top:7px}.cue-buttons{display:flex;gap:7px;margin-top:13px}.cue-button{flex:1;padding:9px 6px;background:#243640;border:1px solid #3b5059;color:#c9d7d8;font-size:10px}.cue-button.active{border-color:var(--mint);color:var(--mint)}.steps{display:grid;gap:9px;margin-top:12px}.step{display:flex;align-items:center;gap:10px;color:#86999e;font-size:11px}.step .num{width:20px;height:20px;border:1px solid #435760;border-radius:50%;display:grid;place-items:center;font-size:9px}.step.done{color:#d9e9e6}.step.done .num{background:#28473f;color:var(--mint);border-color:#51816f}.log{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:6px;max-height:96px;overflow:auto}.log li{font-size:10px;line-height:1.4;color:#9eb1b4}.log time{color:#61787f;font-variant-numeric:tabular-nums;margin-right:7px}.safety{margin-top:18px;border-radius:14px;padding:12px 15px;border:1px solid #665333;background:#332b1c;color:#ffe7bf;font-size:11px;line-height:1.5;display:flex;gap:10px}.safety strong{white-space:nowrap}.footer{margin-top:17px;display:flex;justify-content:space-between;gap:14px;color:#72878b;font-size:10px}.footer a{color:#a8cfcb;text-decoration:none}.footer a:hover{text-decoration:underline}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:850px){.main-grid{grid-template-columns:1fr}.intro{display:block}.intro .sub{margin-top:12px}.side-stack{grid-template-columns:1fr 1fr}.side-card:last-child{grid-column:1/-1}}@media(max-width:560px){.app{padding:20px 14px}.topbar{margin-bottom:25px}.side-stack{grid-template-columns:1fr}.side-card:last-child{grid-column:auto}.camera-card,.side-card{padding:14px}.intro h2{font-size:32px}.footer{display:block}.footer span{display:block;margin-top:6px}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand"><div class="brandmark" aria-hidden="true">◉</div><div><h1>FrameCue</h1><p>camera-to-tactile awareness prototype</p></div></div>
+      <div class="track">NVIDIA · NEMOTRON</div>
+    </header>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">Observe · Interpret · Cue</p><h2 id="page-title">A scene becomes a tactile signal.</h2></div>
+      <p class="sub">A live camera frame is interpreted by NVIDIA Nemotron, then mapped to one of three simulated wearable zones.</p>
+    </section>
+    <div class="main-grid">
+      <section class="card camera-card" aria-label="Camera input">
+        <div class="card-head"><h3>Camera view</h3><div class="live-pill"><span class="dot" id="cameraDot"></span><span id="cameraState">Camera off</span></div></div>
+        <div class="video-frame" id="videoFrame">
+          <video id="video" playsinline muted></video>
+          <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true">◉</div><strong>Ready when you are</strong><span>Start the camera to begin scene analysis.</span></div>
+          <span class="view-label">OBJECT POSITION IN CAMERA VIEW</span>
+        </div>
+        <div class="controls"><button class="primary" id="startButton">Start camera</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
+      </section>
+      <div class="side-stack">
+        <section class="card side-card" aria-labelledby="analysis-title">
+          <h3 id="analysis-title">Scene interpretation</h3>
+          <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
+          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">Start the camera to send a reduced-size frame to Nemotron.</p></div>
+          <div class="steps" aria-label="Processing steps">
+            <div class="step" id="stepCapture"><span class="num">1</span><span>Capture a camera frame</span></div>
+            <div class="step" id="stepNemotron"><span class="num">2</span><span>Interpret scene with Nemotron</span></div>
+            <div class="step" id="stepCue"><span class="num">3</span><span>Map result to simulated cue</span></div>
+          </div>
+        </section>
+        <section class="card side-card" aria-labelledby="cue-title">
+          <div class="card-head"><h3 id="cue-title">Simulated wearable</h3><span class="status-chip" id="cueChip">NO CUE</span></div>
+          <div class="wearable" role="img" aria-label="Three-zone wearable simulation: left, center, and right pressure zones">
+            <div class="wearable-top"><span>Exoskeleton concept</span><span>Haptic output</span></div>
+            <div class="exosuit"><div class="zone" id="zoneLeft">PULSE</div><div class="zone center" id="zoneCenter">PULSE</div><div class="zone" id="zoneRight">PULSE</div></div>
+            <div class="zone-labels"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
+          </div>
+          <div class="cue-buttons" aria-label="Manual cue preview controls"><button class="cue-button" data-cue="left">Preview left</button><button class="cue-button" data-cue="center">Preview center</button><button class="cue-button" data-cue="right">Preview right</button></div>
+        </section>
+        <section class="card side-card" aria-labelledby="workflow-title">
+          <h3 id="workflow-title">Workflow log</h3><ul class="log" id="log" aria-live="polite"><li><time>--:--</time>Waiting for first camera frame.</li></ul>
+        </section>
+      </div>
+    </div>
+    <aside class="safety"><strong>Prototype only</strong><span>These cues mark where an object appears in the camera view. They do not indicate a safe route. This experimental simulation must not be relied on for navigation.</span></aside>
+    <footer class="footer"><span>Camera frames are processed only when sent for analysis.</span><span>FrameCue · HackUTD NVIDIA track prototype</span></footer>
+  </main>
+  <script>
+    const video = document.querySelector('#video');
+    const frameBox = document.querySelector('#videoFrame');
+    const startButton = document.querySelector('#startButton');
+    const stopButton = document.querySelector('#stopButton');
+    const logList = document.querySelector('#log');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { alpha: false });
+    let stream = null;
+    let running = false;
+    let requestInFlight = false;
+    let analysisTimer = null;
+
+    function stamp() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+    function addLog(message) {
+      const item = document.createElement('li');
+      const time = document.createElement('time');
+      time.textContent = stamp();
+      item.append(time, document.createTextNode(message));
+      logList.prepend(item);
+      while (logList.children.length > 8) logList.lastElementChild.remove();
+    }
+    function setStep(step) {
+      ['stepCapture', 'stepNemotron', 'stepCue'].forEach((id, index) => {
+        document.getElementById(id).classList.toggle('done', index < step);
+      });
+    }
+    function showCue(cue, source = 'analysis') {
+      ['left', 'center', 'right'].forEach(name => document.getElementById(`zone${name[0].toUpperCase()}${name.slice(1)}`).classList.toggle('active', cue === name));
+      document.querySelectorAll('.cue-button').forEach(button => button.classList.toggle('active', source === 'preview' && button.dataset.cue === cue));
+      const chip = document.querySelector('#cueChip');
+      chip.textContent = cue === 'clear' ? 'NO OBJECT CUE' : `${cue.toUpperCase()} ZONE`;
+      chip.className = `status-chip ${cue === 'clear' ? '' : 'good'}`;
+      if (source === 'preview') addLog(`Manual preview: ${cue} zone pulsed.`);
+      else addLog(cue === 'clear' ? 'Cue mapping: no directional zone activated.' : `Cue mapping: ${cue} zone pulsed for object position.`);
+    }
+    function setStatus(title, caption, chip, kind = '') {
+      document.querySelector('#analysisTitle').textContent = title;
+      document.querySelector('#analysisCaption').textContent = caption;
+      const element = document.querySelector('#modelChip');
+      element.textContent = chip;
+      element.className = `status-chip ${kind}`;
+    }
+    async function analyzeFrame() {
+      if (!running || requestInFlight || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      requestInFlight = true;
+      try {
+        setStep(0);
+        const scale = Math.min(1, 640 / video.videoWidth);
+        canvas.width = Math.round(video.videoWidth * scale);
+        canvas.height = Math.round(video.videoHeight * scale);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg', 0.68);
+        setStep(1);
+        setStatus('Frame captured', 'Sending a reduced-size image to NVIDIA Nemotron.', 'ANALYZING', 'warn');
+        addLog(`Captured ${canvas.width} × ${canvas.height} camera frame.`);
+        const response = await fetch('/api/analyze', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageData })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Analysis request failed (${response.status}).`);
+        setStep(2);
+        addLog(`Nemotron: ${result.observation.object || 'No clear object'} · ${result.observation.position}.`);
+        document.querySelector('#objectName').textContent = result.observation.object || 'No clear object detected';
+        document.querySelector('#sceneReason').textContent = `${result.observation.reason} Confidence: ${Math.round(result.observation.confidence * 100)}%.`;
+        showCue(result.cue);
+        setStep(3);
+        setStatus('Analysis complete', 'Nemotron interpreted the latest camera frame.', 'NEMOTRON', 'good');
+      } catch (error) {
+        setStatus('Analysis needs attention', error.message, 'ERROR', 'warn');
+        addLog(`Analysis error: ${error.message}`);
+      } finally {
+        requestInFlight = false;
+      }
+    }
+    async function startCamera() {
+      if (running) return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setStatus('Camera unavailable', 'Use localhost or an HTTPS page in a modern browser.', 'NEEDS HTTPS', 'warn');
+        return;
+      }
+      try {
+        setStatus('Requesting camera', 'Allow camera access when your browser asks.', 'CONNECTING', 'warn');
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+        running = true;
+        frameBox.classList.add('has-video');
+        video.classList.add('ready');
+        document.querySelector('#placeholder').hidden = true;
+        document.querySelector('#cameraDot').classList.add('active');
+        document.querySelector('#cameraState').textContent = 'Camera live';
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        document.querySelector('#objectName').textContent = 'Waiting for first result';
+        setStatus('Camera live', 'Nemotron will analyze a frame about every 3 seconds.', 'READY', 'good');
+        addLog('Camera started. Beginning Nemotron scene analysis.');
+        analyzeFrame();
+        analysisTimer = window.setInterval(analyzeFrame, 3000);
+      } catch (error) {
+        setStatus('Camera could not start', error.message || 'Check browser camera permission.', 'CAMERA ERROR', 'warn');
+        addLog(`Camera error: ${error.message || 'permission denied'}.`);
+      }
+    }
+    function stopCamera() {
+      running = false;
+      window.clearInterval(analysisTimer);
+      analysisTimer = null;
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      stream = null;
+      video.srcObject = null;
+      video.classList.remove('ready');
+      frameBox.classList.remove('has-video');
+      document.querySelector('#placeholder').hidden = false;
+      document.querySelector('#cameraDot').classList.remove('active');
+      document.querySelector('#cameraState').textContent = 'Camera off';
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      setStatus('Waiting for camera', 'Nemotron analysis has not started.', 'STANDBY');
+      setStep(0);
+      showCue('clear');
+      addLog('Camera stopped.');
+    }
+    startButton.addEventListener('click', startCamera);
+    stopButton.addEventListener('click', stopCamera);
+    document.querySelectorAll('.cue-button').forEach(button => button.addEventListener('click', () => showCue(button.dataset.cue, 'preview')));
+    window.addEventListener('pagehide', stopCamera);
+    fetch('/api/health').then(response => response.json()).then(info => {
+      if (!info.configured) {
+        setStatus('NVIDIA key needed', 'Add your NVIDIA API key to .env.local before analysis.', 'SETUP NEEDED', 'warn');
+      }
+    }).catch(() => setStatus('Server not running', 'Start the local FrameCue server first.', 'OFFLINE', 'warn'));
+  </script>
+</body>
+</html>
