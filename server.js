@@ -55,13 +55,32 @@ function parseModelJson(content) {
 
 function normalizeObservation(raw) {
   const allowed = new Set(['left', 'center', 'right', 'none']);
-  const position = String(raw.position || 'none').toLowerCase().trim();
-  if (!allowed.has(position)) throw new Error('Nemotron returned an unsupported object position. Try again.');
+  const clamp = value => Math.min(1000, Math.max(0, Number(value)));
+  const rawObjects = Array.isArray(raw.objects) ? raw.objects.slice(0, 6) : [];
+  if (!rawObjects.length && typeof raw.object === 'string' && Array.isArray(raw.box)) {
+    rawObjects.push({ label: raw.object, confidence: raw.confidence, box: raw.box, position: raw.position });
+  }
+  const objects = rawObjects.flatMap(item => {
+    if (!item || !Array.isArray(item.box) || item.box.length !== 4) return [];
+    const box = item.box.map(clamp);
+    const [x1, y1, x2, y2] = box;
+    if (!box.every(Number.isFinite) || x2 - x1 < 8 || y2 - y1 < 8) return [];
+    const confidenceValue = Number(item.confidence);
+    const confidence = Number.isFinite(confidenceValue) ? Math.min(1, Math.max(0, confidenceValue)) : 0;
+    if (confidence < 0.12) return [];
+    const label = typeof item.label === 'string' ? item.label.trim().slice(0, 60) : '';
+    if (!label) return [];
+    const centerX = (x1 + x2) / 2;
+    const suggestedPosition = centerX < 333 ? 'left' : centerX > 666 ? 'right' : 'center';
+    return [{ label, confidence, box, position: suggestedPosition }];
+  });
+  const legacyPosition = String(raw.position || 'none').toLowerCase().trim();
+  const position = objects[0]?.position || (allowed.has(legacyPosition) ? legacyPosition : 'none');
   const confidenceValue = Number(raw.confidence);
-  const confidence = Number.isFinite(confidenceValue) ? Math.min(1, Math.max(0, confidenceValue)) : 0;
-  const object = typeof raw.object === 'string' ? raw.object.trim().slice(0, 120) : '';
+  const confidence = objects[0]?.confidence ?? (Number.isFinite(confidenceValue) ? Math.min(1, Math.max(0, confidenceValue)) : 0);
+  const object = objects[0]?.label || (typeof raw.object === 'string' ? raw.object.trim().slice(0, 120) : '');
   const reason = typeof raw.reason === 'string' ? raw.reason.trim().slice(0, 240) : '';
-  return { object, position, confidence, reason };
+  return { object, position, confidence, reason, objects };
 }
 
 // Deterministic tool step: turn Nemotron's observation into one simulated zone cue.
@@ -81,10 +100,10 @@ async function analyze(request, response) {
     return sendJson(response, 400, { error: 'Expected a reduced-size JPEG camera frame.' });
   }
   const prompt = [
-    'Analyze this single camera frame for the nearest visible obstacle relevant to a person walking.',
-    'Estimate only where that object appears horizontally in this image; do not recommend a route or claim the scene is safe.',
-    'Return ONLY valid JSON with exactly these keys: object (short string or empty), position (left, center, right, or none), confidence (number 0 to 1), reason (short string).',
-    'Use none and an empty object when no obstacle is clearly visible. Do not include markdown.'
+    'Identify up to 6 clearly visible everyday objects or obstacles in this single camera frame. Do not identify people, faces, or read text.',
+    'For each object, estimate a tight bounding box in image coordinates from 0 to 1000: [left, top, right, bottom]. Coordinates are normalized to the full image, with 0 at the top/left and 1000 at the bottom/right.',
+    'Put the most relevant nearby object first. Do not recommend a route or claim the scene is safe.',
+    'Return ONLY valid JSON with exactly these keys: objects (array of {label, confidence, box}), reason (short string). Confidence is 0 to 1. Use an empty objects array when no object is clear. Do not include markdown.'
   ].join(' ');
   let apiResponse;
   try {
@@ -95,7 +114,7 @@ async function analyze(request, response) {
         model: MODEL,
         messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: imageData } }] }],
         temperature: 0.2,
-        max_tokens: 220,
+        max_tokens: 420,
         stream: false
       }),
       signal: AbortSignal.timeout(45000)
