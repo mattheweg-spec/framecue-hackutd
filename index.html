@@ -237,8 +237,13 @@
         window.clearTimeout(analysisTimer);
         analysisTimer = null;
         retryButton.hidden = !running;
-        setStatus('Analysis needs attention', error.message, 'ERROR', 'warn');
-        addLog(`Analysis error: ${error.message}`);
+        const message = error instanceof TypeError
+          ? (location.protocol === 'file:'
+            ? 'This page was opened directly as a file. Open http://localhost:3000 so the local server can send frames to Nemotron.'
+            : 'Cannot reach the local FrameCue server. Confirm node server.js is running, then reload http://localhost:3000.')
+          : error.message;
+        setStatus('Analysis needs attention', message, 'ERROR', 'warn');
+        addLog(`Analysis error: ${message}`);
       } finally {
         requestInFlight = false;
         if (running && analysisStarted) analysisTimer = window.setTimeout(analyzeFrame, 2500);
@@ -330,6 +335,10 @@
     stopButton.addEventListener('click', stopCamera);
     document.querySelectorAll('.cue-button').forEach(button => button.addEventListener('click', () => showCue(button.dataset.cue, 'preview')));
     window.addEventListener('pagehide', stopCamera);
+    if (location.protocol === 'file:') {
+      startButton.disabled = true;
+      setStatus('Open the local server', 'This page was opened as a file. Use http://localhost:3000 to connect the camera and Nemotron.', 'WRONG PAGE', 'warn');
+    }
     fetch('/api/health').then(response => response.json()).then(info => {
       if (!info.configured) {
         setStatus('NVIDIA key needed', 'Add your NVIDIA API key to .env.local before analysis.', 'SETUP NEEDED', 'warn');
