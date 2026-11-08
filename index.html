@@ -65,7 +65,7 @@
     .assembly-reset{position:absolute;right:9px;bottom:8px;border:1px solid #536a70;border-radius:999px;background:#14242bdc;color:#d9e8e5;padding:5px 9px;font-size:9px}
     .assembly-readout{position:absolute;right:9px;top:8px;border:1px solid #3b555b;border-radius:999px;background:#101b20dc;color:#c7d8d6;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
     .assembly-note{margin:8px 2px 0;color:#9dafb3;font-size:9px;line-height:1.45}
-    .gps-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.gps-fields label{display:grid;gap:5px;color:#aebdc0;font-size:11px}.gps-fields input{min-width:0;padding:9px;border:1px solid #3b5158;border-radius:8px;background:#101a1f;color:#eaf1ee}
+    .gps-panel{margin-top:14px;padding:14px;border:1px solid #344850;border-radius:15px;background:#142129}.gps-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.gps-fields label{display:grid;gap:5px;color:#aebdc0;font-size:11px}.gps-fields input{min-width:0;padding:9px;border:1px solid #3b5158;border-radius:8px;background:#101a1f;color:#eaf1ee}.route-step{padding:10px 12px;margin-top:8px;border-radius:10px;background:#0f191f;color:#e7efed;font-size:12px;line-height:1.4;min-height:40px}
     .zone-labels{font-size:9px;letter-spacing:.16em;color:#abc0bc;margin-top:0}
     @media(max-width:520px){.wearable-svg{max-height:178px}.wearable{padding:10px}}
     @media(max-width:420px){.status-row{gap:8px}.status-chip{max-width:42%}.cue-button{font-size:9px}.track{font-size:10px;padding:7px 9px}}
@@ -92,16 +92,14 @@
         </div>
         <div class="controls"><button class="primary" id="startButton">Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
         <p class="privacy-note">Fast object detection runs in this browser. A smaller reference frame is sent to NVIDIA Nemotron about every 12 seconds. People are labeled only “person”; no identity or face analysis is requested. If the local model cannot load, the app falls back to slower cloud scanning.</p>
+        <section class="gps-panel" aria-labelledby="gps-title"><div class="card-head"><h3 id="gps-title">Mapped walking route</h3><span class="status-chip" id="gpsChip">GPS OFF</span></div>
+          <div class="gps-fields"><label>Destination latitude<input id="gpsLat" type="number" step="any" placeholder="33.2148"></label><label>Destination longitude<input id="gpsLon" type="number" step="any" placeholder="-97.1331"></label></div>
+          <div class="controls"><button class="primary" id="gpsStart">Build walking route</button><button class="secondary" id="gpsStop" disabled>Stop</button></div>
+          <p id="gpsStatus" class="status-caption" aria-live="polite">Uses OpenStreetMap walking routes; enter destination coordinates.</p><div class="route-step" id="routeStep" aria-live="polite">Route instructions appear here.</div>
+          <p class="assembly-note">Route cues follow mapped turns. GPS and compass can drift; this prototype does not detect hazards and is not a mobility aid.</p>
+        </section>
       </section>
       <div class="side-stack">
-        <section class="card side-card" aria-labelledby="gps-title">
-          <h3 id="gps-title">GPS direction demo</h3>
-          <p class="assembly-note">Enter a destination coordinate, then allow location and compass access. The phone heading maps the straight-line bearing to the same claw cues.</p>
-          <div class="gps-fields"><label>Destination latitude<input id="gpsLat" type="number" step="any" placeholder="33.2148"></label><label>Destination longitude<input id="gpsLon" type="number" step="any" placeholder="-97.1331"></label></div>
-          <div class="controls"><button class="primary" id="gpsStart">Start GPS cue</button><button class="secondary" id="gpsStop" disabled>Stop GPS</button></div>
-          <p id="gpsStatus" class="status-caption" aria-live="polite">GPS is off.</p>
-          <p class="assembly-note">Prototype only: this points directly toward the destination. It does not calculate walkable paths, detect crossings, or replace a cane or guide dog.</p>
-        </section>
         <section class="card side-card" aria-labelledby="analysis-title">
           <h3 id="analysis-title">Scene interpretation</h3>
           <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
@@ -671,50 +669,26 @@
     retryButton.addEventListener('click', beginAnalysis);
     stopButton.addEventListener('click', stopCamera);
     document.querySelectorAll('.cue-button').forEach(button => button.addEventListener('click', () => showCue(button.dataset.cue, 'preview')));
-    let gpsWatch = null;
-    let gpsHeading = null;
-    let gpsTargetBearing = null;
-    const gpsStatus = document.querySelector('#gpsStatus');
-    function updateGpsCue() {
-      if (gpsTargetBearing == null || gpsHeading == null) return;
-      let delta = ((gpsTargetBearing - gpsHeading + 540) % 360) - 180;
-      const cue = Math.abs(delta) < 22 ? 'center' : delta < 0 ? 'left' : 'right';
-      setCueVisual(cue, 'gps');
-      gpsStatus.textContent = `${Math.round(delta)}° ${delta < 0 ? 'left' : 'right'} of heading · ${Math.round(gpsDistance)} m straight-line`;
-    }
-    let gpsDistance = 0;
-    function gpsOrientation(event) {
-      const heading = event.webkitCompassHeading ?? (event.alpha == null ? null : (360 - event.alpha) % 360);
-      if (Number.isFinite(heading)) { gpsHeading = heading; updateGpsCue(); }
-    }
-    document.querySelector('#gpsStart').addEventListener('click', async () => {
-      const lat = Number(document.querySelector('#gpsLat').value), lon = Number(document.querySelector('#gpsLon').value);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { gpsStatus.textContent = 'Enter valid destination latitude and longitude.'; return; }
-      if (!navigator.geolocation) { gpsStatus.textContent = 'This browser does not provide GPS location.'; return; }
-      gpsTargetBearing = null; gpsHeading = null;
-      const start = position => {
-        gpsWatch = navigator.geolocation.watchPosition(current => {
-          const a = current.coords.latitude*Math.PI/180, b = lat*Math.PI/180;
-          const dLon = (lon-current.coords.longitude)*Math.PI/180;
-          const y = Math.sin(dLon)*Math.cos(b), x = Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(dLon);
-          gpsTargetBearing = (Math.atan2(y,x)*180/Math.PI+360)%360;
-          const dLat=(lat-current.coords.latitude)*Math.PI/180;
-          const h=Math.sin(dLat/2)**2+Math.cos(a)*Math.cos(b)*Math.sin(dLon/2)**2;
-          gpsDistance=6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
-          if (Number.isFinite(current.coords.heading)) gpsHeading=current.coords.heading;
-          gpsStatus.textContent = gpsHeading == null ? 'Location found. Move to establish GPS heading or use a device compass.' : `${Math.round(gpsDistance)} m from destination; bearing ${Math.round(gpsTargetBearing)}°`;
-          updateGpsCue();
-        }, error => { gpsStatus.textContent = `GPS error: ${error.message}`; }, {enableHighAccuracy:true,maximumAge:1000,timeout:15000});
-        document.querySelector('#gpsStart').disabled=true; document.querySelector('#gpsStop').disabled=false;
-        window.addEventListener('deviceorientationabsolute',gpsOrientation); window.addEventListener('deviceorientation',gpsOrientation);
-        gpsStatus.textContent='Waiting for GPS and compass heading…';
-      };
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try { if (await DeviceOrientationEvent.requestPermission() !== 'granted') { gpsStatus.textContent='Compass access was not granted.'; return; } } catch { gpsStatus.textContent='Could not access the compass.'; return; }
-      }
-      start();
+    let gpsWatch=null, routePoints=[], maneuvers=[], maneuverIndex=0;
+    const gpsStatus=document.querySelector('#gpsStatus'), routeStep=document.querySelector('#routeStep');
+    function decodePolyline6(encoded){let i=0,lat=0,lon=0,out=[];while(i<encoded.length){let result=0,shift=0,b;do{b=encoded.charCodeAt(i++)-63;result|=(b&31)<<shift;shift+=5}while(b>=32);lat+=result&1?~(result>>1):result>>1;result=0;shift=0;do{b=encoded.charCodeAt(i++)-63;result|=(b&31)<<shift;shift+=5}while(b>=32);lon+=result&1?~(result>>1):result>>1;out.push([lat/1e6,lon/1e6])}return out}
+    function distanceMeters(a,b){const rad=x=>x*Math.PI/180,dLat=rad(b[0]-a[0]),dLon=rad(b[1]-a[1]),x=Math.sin(dLat/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLon/2)**2;return 12742000*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+    function activeManeuverCue(){const text=maneuvers[maneuverIndex]?.instruction?.toLowerCase()||'';return /left/.test(text)?'left':/right/.test(text)?'right':'center'}
+    function showRouteStep(){if(maneuverIndex>=maneuvers.length){routeStep.textContent='You have reached the destination.';setCueVisual('clear','gps');return}const m=maneuvers[maneuverIndex];routeStep.textContent=`${m.instruction} · ${Math.round(m.length*1000)} m`;setCueVisual(activeManeuverCue(),'gps')}
+    document.querySelector('#gpsStart').addEventListener('click',()=>{
+      const lat=Number(document.querySelector('#gpsLat').value),lon=Number(document.querySelector('#gpsLon').value);
+      if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180){gpsStatus.textContent='Enter valid destination coordinates.';return}
+      if(!navigator.geolocation){gpsStatus.textContent='GPS is unavailable in this browser.';return}
+      gpsStatus.textContent='Getting current location…';
+      gpsWatch=navigator.geolocation.watchPosition(async pos=>{
+        if(maneuvers.length)return;
+        const start=[pos.coords.latitude,pos.coords.longitude];
+        try{const response=await fetch('https://valhalla1.openstreetmap.de/route',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locations:[{lat:start[0],lon:start[1]},{lat,lon}],costing:'pedestrian',units:'kilometers',language:'en'})});if(!response.ok)throw new Error(`Route service returned ${response.status}`);const data=await response.json();const leg=data.trip?.legs?.[0];if(!leg)throw new Error('No walking route found.');routePoints=decodePolyline6(leg.shape);maneuvers=leg.maneuvers||[];maneuverIndex=0;document.querySelector('#gpsChip').textContent='ROUTE READY';gpsStatus.textContent=`Mapped walk · ${data.trip.summary.length.toFixed(1)} km · OpenStreetMap routing`;showRouteStep();}catch(error){gpsStatus.textContent=`Could not build route: ${error.message}`}
+      },error=>{gpsStatus.textContent=`GPS error: ${error.message}`},{enableHighAccuracy:true,maximumAge:3000,timeout:15000});
+      document.querySelector('#gpsStart').disabled=true;document.querySelector('#gpsStop').disabled=false;
+      gpsWatch=navigator.geolocation.watchPosition(pos=>{if(!routePoints.length)return;const here=[pos.coords.latitude,pos.coords.longitude],next=maneuvers[maneuverIndex];if(!next)return;const target=routePoints[Math.min(next.end_shape_index,routePoints.length-1)];if(distanceMeters(here,target)<22){maneuverIndex++;showRouteStep()}gpsStatus.textContent=`GPS accuracy ±${Math.round(pos.coords.accuracy)} m · Step ${Math.min(maneuverIndex+1,maneuvers.length)} of ${maneuvers.length}`},error=>{gpsStatus.textContent=`GPS error: ${error.message}`},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
     });
-    document.querySelector('#gpsStop').addEventListener('click', () => { if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch); gpsWatch=null; gpsTargetBearing=null; window.removeEventListener('deviceorientationabsolute',gpsOrientation); window.removeEventListener('deviceorientation',gpsOrientation); document.querySelector('#gpsStart').disabled=false; document.querySelector('#gpsStop').disabled=true; showCue('clear','gps'); gpsStatus.textContent='GPS stopped.'; });
+    document.querySelector('#gpsStop').addEventListener('click',()=>{if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;routePoints=[];maneuvers=[];maneuverIndex=0;document.querySelector('#gpsStart').disabled=false;document.querySelector('#gpsStop').disabled=true;document.querySelector('#gpsChip').textContent='GPS OFF';routeStep.textContent='Route instructions appear here.';showCue('clear','gps');gpsStatus.textContent='GPS stopped.'});
     window.addEventListener('pagehide', stopCamera);
     if (location.protocol === 'file:') {
       startButton.disabled = true;
