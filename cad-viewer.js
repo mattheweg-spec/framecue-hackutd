@@ -9,7 +9,8 @@ const fallback = document.querySelector('#wearableFallback');
 const loading = document.querySelector('#assemblyLoading');
 const readout = document.querySelector('#assemblyReadout');
 const cueNames = ['left', 'center', 'right'];
-const cueColors = { left: '#55dcd2', center: '#efbd4f', right: '#f46d61' };
+const activeCueColor = '#ff343d';
+const activeCueThreeColor = new THREE.Color(activeCueColor);
 const targets = Object.fromEntries(cueNames.map(name => [name, 0]));
 const actuators = new Map();
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -39,11 +40,11 @@ function updateActuator(actuator, amount, delta) {
   actuator.amount += (amount - actuator.amount) * blend;
   actuator.pivot.position.z = actuator.basePosition.z + actuator.amount * 0.38;
   actuator.mesh.scale.z = actuator.baseScale.z * (1 + actuator.amount * 0.34);
-  const materials = Array.isArray(actuator.mesh.material) ? actuator.mesh.material : [actuator.mesh.material];
-  for (const material of materials) {
+  for (const { material, baseColor } of actuator.materials) {
     if (!material?.emissive) continue;
-    material.emissive.set(cueColors[actuator.name]);
-    material.emissiveIntensity = 0.38 * actuator.amount;
+    material.color.copy(baseColor).lerp(activeCueThreeColor, actuator.amount);
+    material.emissive.copy(activeCueThreeColor);
+    material.emissiveIntensity = 0.85 * actuator.amount;
   }
 }
 
@@ -71,7 +72,7 @@ try {
   controls.enableDamping = true;
   controls.dampingFactor = 0.075;
   controls.enablePan = false;
-    controls.minDistance = 7;
+  controls.minDistance = 7;
   controls.maxDistance = 100;
   const initialCamera = new THREE.Vector3();
   let modelReady = false;
@@ -97,6 +98,9 @@ try {
   resize();
 
   function prepareBladder(mesh, name) {
+    mesh.material = Array.isArray(mesh.material)
+      ? mesh.material.map(material => material.clone())
+      : mesh.material.clone();
     const geometry = mesh.geometry.clone();
     geometry.computeBoundingBox();
     const center = geometry.boundingBox.getCenter(new THREE.Vector3());
@@ -114,7 +118,16 @@ try {
     pivot.add(mesh);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    const actuator = { name, pivot, mesh, basePosition: center.clone(), baseScale: mesh.scale.clone(), amount: 0 };
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    const actuator = {
+      name,
+      pivot,
+      mesh,
+      materials: materials.map(material => ({ material, baseColor: material.color.clone() })),
+      basePosition: center.clone(),
+      baseScale: mesh.scale.clone(),
+      amount: 0
+    };
     actuators.set(name, actuator);
     updateActuator(actuator, targets[name], 1);
   }
@@ -124,6 +137,13 @@ try {
       if (!child.isMesh) return;
       child.castShadow = true;
       child.receiveShadow = true;
+      if (/^Cue_Module_/i.test(child.name) && !/soft bladder envelope_body/i.test(child.name)) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        for (const material of materials) {
+          if (material?.color) material.color.set('#657176');
+          if (material?.emissive) material.emissive.set('#000000');
+        }
+      }
       if (/^Reference (outsole|shoe upper)/i.test(child.name)) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         for (const material of materials) {
