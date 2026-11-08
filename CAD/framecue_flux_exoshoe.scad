@@ -122,17 +122,44 @@ module navigation_motor(x,y,z){
   color([0.71,0.91,0.83]) translate([x,y,z+5.1]) cylinder(d=2.6,h=1.2);
 }
 
+module binding_link(a,b,d=6){
+  mid=[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2];
+  // Outer sleeve stops short of the cuff; the narrower indexed bar slides inside it.
+  color([0.23,0.32,0.35]) hull(){translate(a) sphere(d=d);translate([a[0]+(mid[0]-a[0])*.72,a[1]+(mid[1]-a[1])*.72,a[2]+(mid[2]-a[2])*.72]) sphere(d=d);}
+  color([0.48,0.59,0.60]) hull(){translate([a[0]+(mid[0]-a[0])*.54,a[1]+(mid[1]-a[1])*.54,a[2]+(mid[2]-a[2])*.54]) sphere(d=d*.48);translate(b) sphere(d=d*.48);}
+  for(t=[.60,.72,.84]) color([0.70,0.78,0.76]) translate([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]) sphere(d=2.2,$fn=12);
+}
+
+module crampon_rail_dock(x,side,z){
+  // Receiver saddle captures the outside side rail; a captive cross pin is the release action.
+  color([0.11,0.17,0.19]) translate([x,side*railY,z]) cube([18,13,12],center=true);
+  color([0.28,0.39,0.41]) translate([x,side*(railY+5),z+6]) cube([12,4,3],center=true);
+  color([0.55,0.64,0.64]) translate([x,side*(railY+8),z]) rotate([90,0,0]) cylinder(d=4.2,h=20,center=true,$fn=20);
+  color([0.55,0.64,0.64]) translate([x,side*(railY+12),z]) rotate([90,0,0]) rotate_extrude(convexity=4) translate([4,0]) circle(r=1,$fn=16);
+  // Indexed positions let the cuff standoff fit different shoes without a foot scan.
+  color([0.64,0.72,0.70]) for(i=[-1:1]) translate([x+i*5,side*(railY+7),z+3.5]) sphere(d=2.2,$fn=12);
+}
+
 module navigation_ankle_cuff(){
-  // Open two-rail cuff sits above the heel; four slim ribs keep it visually tied to the shoe frame.
+  // Rear split rails release under a small cam gate; the established shoe chassis stays intact.
   cuff_x=28; cuff_rx=31; cuff_ry=39;
-  color([0.12,0.19,0.21])
-    for(z=[82,108]) scale([1,cuff_ry/cuff_rx,1]) translate([cuff_x,0,z]) rotate_extrude(convexity=4) translate([cuff_rx,0]) circle(r=1.35,$fn=24);
+  color([0.12,0.19,0.21]) for(z=[82,108]) difference(){
+    scale([1,cuff_ry/cuff_rx,1]) translate([cuff_x,0,z]) rotate_extrude(convexity=4) translate([cuff_rx,0]) circle(r=1.8,$fn=28);
+    translate([cuff_x-cuff_rx-1,-cuff_ry-4,z-3]) cube([2,cuff_ry*2+8,6]);
+  }
   color([0.24,0.36,0.38])
-    for(a=[0:90:270]) translate([cuff_x+cuff_rx*cos(a),cuff_ry*sin(a),95]) cylinder(d=3.2,h=26,center=true,$fn=16);
-  // Support forks connect the cuff to the outer heel frame, not under the sole.
-  color([0.12,0.19,0.21]) for(s=[-1,1]) hull(){
-    translate([25,s*(railY-1),68]) sphere(d=4);
-    translate([25,s*33,82]) sphere(d=4);
+    for(a=[0:90:270]) if(a!=180) translate([cuff_x+cuff_rx*cos(a),cuff_ry*sin(a),95]) cylinder(d=4.2,h=26,center=true,$fn=18);
+  // Hinged gate bridges the rear opening and swings clear when its over-center lever is released.
+  color([0.20,0.30,0.33]) translate([cuff_x-cuff_rx,0,95]) cube([5,19,24],center=true);
+  color([0.56,0.65,0.65]) translate([cuff_x-cuff_rx-3,-10,95]) cylinder(d=4,h=27,center=true,$fn=18);
+  color([0.45,0.57,0.58]) translate([cuff_x-cuff_rx+2,10,95]) rotate([0,0,-18]) cube([4,13,3],center=true);
+  color([0.70,0.80,0.75]) translate([cuff_x-cuff_rx+4,16,95]) sphere(d=4,$fn=16);
+  // Two indexed links per side dock into the exoskeleton side rails like a crampon binding.
+  for(s=[-1,1]){
+    binding_link([cuff_x+3,s*34,82],[cuff_x+1,s*(railY-1),48],7);
+    binding_link([cuff_x+24,s*27,82],[cuff_x+39,s*(railY-1),57],7);
+    crampon_rail_dock(cuff_x+1,s,48);
+    crampon_rail_dock(cuff_x+39,s,57);
   }
   navigation_motor(cuff_x,-cuff_ry-2,94);
   navigation_motor(cuff_x+cuff_rx+2,0,94);

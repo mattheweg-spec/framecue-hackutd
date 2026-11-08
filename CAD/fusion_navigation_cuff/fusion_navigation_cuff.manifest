@@ -4,9 +4,9 @@
   "id": "e89b2112-a01c-48db-8cda-dd063a15e049",
   "author": "FrameCue",
   "description": {
-    "": "Adds a separate ankle cuff with left, forward, and right route guidance haptic motor concepts."
+      "": "Adds a rear-latch quick-release ankle cuff with adjustable crampon-style shoe-rail bindings and separate route haptic concepts."
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "runOnStartup": false,
   "supportedOS": "windows",
   "editEnabled": true

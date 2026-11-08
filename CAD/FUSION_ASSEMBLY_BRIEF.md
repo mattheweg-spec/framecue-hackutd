@@ -9,7 +9,7 @@ Create an editable, technical-looking concept assembly for a shoe-mounted obstac
 - Saved in the Autodesk Fusion **Default Project** as `FrameCue FLUX Pneumatic Exoskeleton Concept`.
 - Built as an assembly with separate components for the translucent shoe reference, left/right side rails, heel link, two webbing bands, four rail-mounted band adjusters, controller enclosure and bracket, three cue cartridges, and three pneumatic route placeholders.
 - The cue cartridges are color coded blue / amber / red. Their dark compliant volumes, cradle lips, and inlet bosses are visual placeholders for a future soft-actuator study.
-- `CAD/fusion_navigation_cuff/` contains an Autodesk Fusion Python script and manifest. Add the folder from Fusion's Scripts and Add-Ins panel, then run it with the FrameCue FLUX assembly open to add a separate two-rail ankle cuff and left / forward / right rounded haptic motor pods. The browser viewer builds a matching interactive cuff over the existing Fusion mesh.
+- `CAD/fusion_navigation_cuff/` contains an Autodesk Fusion Python script and manifest. Add the folder from Fusion's Scripts and Add-Ins panel, then run it with the FrameCue FLUX assembly open to replace the earlier cuff with a split rear-gate cuff, hinge, over-center latch, two indexed side links, rail receiver cleats, and captive pull pins. The browser viewer builds a matching interactive cuff over the existing Fusion mesh.
 - The Fusion design includes editable extrusion features and user parameters for `railWall`, `strapThickness`, and `bladderLift`.
 - The local sketch/STL concept files remain preliminary; the Fusion assembly is the current editable CAD artifact.
 
@@ -20,6 +20,7 @@ Create an editable, technical-looking concept assembly for a shoe-mounted obstac
 - Use two narrow adjustable bands and replaceable soft contact pads.
 - Make left, center, and right cue modules distinct and replaceable.
 - Keep obstacle avoidance on the instep claws and route guidance on the separate ankle cuff. They are independent outputs: camera detections must not move the ankle motors, and route turns must not curl the instep claws.
+- Make the ankle cuff open at the rear for donning and doffing. A hinged gate and cam lever close it; two detachable side links dock into cleats on the existing exoskeleton rails, with captive pull pins for removal. The links have indexed positions for different shoe heights.
 - Route conceptual tubing/wiring visibly and cleanly along the frame.
 - Keep the shoe as a separate, translucent reference component, not part of the device.
 - Use rounded edges and intentional ribs, fasteners, mounting bosses, and part boundaries so the model reads as an assembly.
@@ -51,13 +52,15 @@ Do not imply that a miniature pump, valve, or bladder has been selected or valid
 5. Design one cue cartridge with a soft bladder volume, rigid cradle, cap, and inlet port; pattern or place three cartridges across the instep.
 6. Add the controller enclosure and visually route three independent lines to the cue modules.
 7. Add the separate ankle cuff and three rounded motor pods for left / forward / right route cues; keep the haptic motor assemblies separate from the instep obstacle actuators.
-8. Create a clean assembled view, an exploded view, and a section view through one cue module to show its support and contact parts.
+8. Add a split rear gate and quick-release closure to the cuff; connect it to the existing side rails with two indexed links and captive cross-pins.
+9. Create a clean assembled view, an exploded view, and a section view through one cuff dock and one cue module to show how the assemblies connect.
 
 ## Visual review checklist
 
 - Parts have clear functions and visible joins; avoid floating decorative shapes.
 - The red instep claw modules communicate obstacle location; the ankle band communicates route direction in a visibly separate location.
 - The three ankle navigation motors are easy to distinguish and service.
+- The cuff opens for removal and its side pull-pins visibly connect to cleats on the shoe exoskeleton.
 - Adjustment is visible: anchors slide along rails and straps have buckles.
 - Tube/cable paths connect to ports and do not cross the sole or snag the toe.
 - The reference shoe remains separate and can be hidden.
@@ -69,3 +72,13 @@ Do not imply that a miniature pump, valve, or bladder has been selected or valid
 - Which shoe size range to represent with the first parameter set.
 - Whether the final demo remains simulation-only or includes a low-risk vibration cue.
 - If pneumatic hardware is pursued later, the exact pump, valves, bladder material, power source, pressure limits, and independent safety review must be researched and tested before any wearer trial.
+
+## Practical feature ideas to consider before visual polish
+
+- Give the ankle cuff a replaceable washable liner and rounded contact pads so the rigid frame does not sit directly against skin.
+- Make the route haptics use short, consistent patterns: one side for left/right, a distinct centered pattern for forward, and a repeated stronger pattern for an urgent reroute. Keep these separate from obstacle cues at the instep.
+- Add a tactile one-button control for repeat-last-direction and pause/resume, so the user does not need to find a screen while walking.
+- Keep the captive release rings easy to locate by touch and add an obvious mechanical stop; the pull pins and cuff latch should be operable with one hand in the concept.
+- Show a clear fit-index range and a small breakaway feature in the assembly, then validate the actual fit and release force with appropriate expert review before any wearable use.
+
+Once the component set and interactions are settled, revisit the web graphics with deliberate part materials, restrained status lighting, and clear exploded / assembled views instead of adding decoration before the mechanism is stable.

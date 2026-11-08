@@ -77,13 +77,16 @@ function updateNavigationMotor(motor, amount, delta) {
 
 function addNavigationCuff(object) {
   const cuff = new THREE.Group();
-  cuff.name = 'Navigation_Ankle_Cuff';
+  cuff.name = 'QuickRelease_Ankle_Cuff';
   const shell = new THREE.MeshStandardMaterial({ color: '#27373e', metalness: 0.72, roughness: 0.38 });
   const edge = new THREE.MeshStandardMaterial({ color: '#73878b', metalness: 0.82, roughness: 0.3 });
   const ringX = 3.25, ringY = 4.05, centerX = 4.2;
+  const rearX = centerX - ringX, gapAngle = 0.34;
   for (const z of [8.25, 10.75]) {
-    const band = new THREE.Mesh(new THREE.TorusGeometry(1, 0.13, 8, 64), shell);
-    band.name = 'Ankle_Cuff_Rail';
+    const geometry = new THREE.TorusGeometry(1, 0.18, 10, 80, Math.PI * 2 - gapAngle);
+    geometry.rotateZ(Math.PI + gapAngle / 2);
+    const band = new THREE.Mesh(geometry, shell);
+    band.name = 'Split_Ankle_Cuff_Rail';
     band.scale.set(ringX, ringY, 1);
     band.position.set(centerX, 0, z);
     cuff.add(band);
@@ -96,12 +99,34 @@ function addNavigationCuff(object) {
     rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
     cuff.add(rod);
   };
-  for (const [x, y] of [[centerX + ringX, 0], [centerX - ringX, 0], [centerX, ringY], [centerX, -ringY]]) {
-    addRod([x, y, 8.25], [x, y, 10.75], 0.12, edge, 'Cuff_Rib');
+  for (const [x, y] of [[centerX + ringX, 0], [centerX, ringY], [centerX, -ringY]]) {
+    addRod([x, y, 8.25], [x, y, 10.75], 0.16, edge, 'Cuff_Rib');
   }
-  // Two slim supports meet the heel frame while keeping the separate ankle cue visible.
-  addRod([2.6, -5.7, 6.45], [2.6, -3.4, 8.25], 0.18, shell, 'Cuff_Frame_Support_Left');
-  addRod([2.6, 5.7, 6.45], [2.6, 3.4, 8.25], 0.18, shell, 'Cuff_Frame_Support_Right');
+  // Rear hinge and over-center clasp make the cuff visibly openable for entry and removal.
+  addRod([centerX, ringY, 8.25], [centerX, ringY, 10.75], 0.24, edge, 'Cuff_Hinge_Pin');
+  for (const z of [8.25, 10.75]) {
+    const lug = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.48, 0.38), shell);
+    lug.name = 'Cuff_Latch_Lug';
+    lug.position.set(rearX, -0.43, z);
+    cuff.add(lug);
+    const secondLug = lug.clone();
+    secondLug.position.y = 0.43;
+    cuff.add(secondLug);
+  }
+  const latch = new THREE.Group();
+  latch.name = 'Rear_Over_Center_Cuff_Latch';
+  const latchBridge = new THREE.Mesh(new THREE.BoxGeometry(0.56, 1.65, 0.42), edge);
+  latchBridge.position.set(rearX - 0.02, 0, 9.5);
+  latch.add(latchBridge);
+  const latchLever = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.42, 0.16), shell);
+  latchLever.position.set(rearX + 0.24, 0.03, 9.63);
+  latchLever.rotation.z = -0.19;
+  latch.add(latchLever);
+  const latchPivot = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.25, 16), edge);
+  latchPivot.position.set(rearX + 0.28, 0, 9.5);
+  latchPivot.rotation.x = Math.PI / 2;
+  latch.add(latchPivot);
+  cuff.add(latch);
 
   const podMaterial = new THREE.MeshStandardMaterial({ color: '#35464c', metalness: 0.68, roughness: 0.32 });
   const directions = {
@@ -132,6 +157,48 @@ function addNavigationCuff(object) {
     const motor = { cap, ring, baseColor: capMaterial.color.clone(), ringBaseColor: ringMaterial.color.clone(), amount: 0 };
     navigationMotors.set(name, motor);
     updateNavigationMotor(motor, navigationTargets[name], 1);
+  }
+
+  // Each removable binding grips the existing side rail and supports the cuff with two indexed links.
+  for (const side of [-1, 1]) {
+    const binding = new THREE.Group();
+    binding.name = `Crampon_Rail_Binding_${side < 0 ? 'Left' : 'Right'}`;
+    const dockMaterial = new THREE.MeshStandardMaterial({ color: '#3b4a50', metalness: 0.78, roughness: 0.3 });
+    const pinMaterial = new THREE.MeshStandardMaterial({ color: '#a5b1b2', metalness: 0.88, roughness: 0.25 });
+    const supportPairs = [
+      { cuff: [3.25, side * 3.35, 8.25], rail: [3.8, side * 5.15, 4.55] },
+      { cuff: [6.15, side * 2.8, 8.25], rail: [6.9, side * 5.15, 5.65] }
+    ];
+    for (let index = 0; index < supportPairs.length; index++) {
+      const { cuff: upper, rail: lower } = supportPairs[index];
+      const lerp = amount => lower.map((value, axis) => value + (upper[axis] - value) * amount);
+      addRod(lower, lerp(0.64), 0.3, shell, `Cuff_Link_Sleeve_${index + 1}`);
+      addRod(lerp(0.48), upper, 0.18, edge, `Indexed_Cuff_Link_Bar_${index + 1}`);
+      const dock = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.05, 0.82), dockMaterial);
+      dock.name = `Crampon_Rail_Dock_${index + 1}`;
+      dock.position.set(lower[0], lower[1], lower[2]);
+      binding.add(dock);
+      const toeLip = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.22, 0.18), edge);
+      toeLip.position.set(lower[0] + 0.05, lower[1], lower[2] + 0.43);
+      binding.add(toeLip);
+      // An exposed pin and captive pull-ring indicate the actual detach action.
+      const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.25, 16), pinMaterial);
+      pin.position.set(lower[0], lower[1] + side * 0.64, lower[2]);
+      binding.add(pin);
+      const pullRing = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.055, 8, 16), pinMaterial);
+      pullRing.rotation.x = Math.PI / 2;
+      pullRing.position.set(lower[0], lower[1] + side * 0.72, lower[2]);
+      binding.add(pullRing);
+      // Three index heads on the exposed slider show the standoff adjustment range.
+      for (let mark = 0; mark < 3; mark++) {
+        const t = 0.58 + mark * 0.12;
+        const position = lerp(t);
+        const indexMark = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 6), edge);
+        indexMark.position.set(position[0], position[1] + side * 0.18, position[2]);
+        binding.add(indexMark);
+      }
+    }
+    cuff.add(binding);
   }
   object.add(cuff);
 }
@@ -268,7 +335,7 @@ try {
     initialCamera.set(distance * 0.98, distance * 0.82, distance * 1.05);
     resetView();
     viewer.classList.add('ready');
-    viewer.setAttribute('aria-label', 'Interactive FrameCue assembly. Red instep claws show obstacle location; the separate ankle cuff shows left, forward, or right route guidance.');
+    viewer.setAttribute('aria-label', 'Interactive FrameCue assembly. Red instep claws show obstacle location; the split, quick-release ankle cuff connects to the shoe frame through adjustable side links with pull pins and shows left, forward, or right route guidance.');
     if (fallback) fallback.hidden = true;
     modelReady = true;
     if (cueNames.some(name => movingParts.filter(part => part.name === name && /Finger_[123]$/.test(part.child.name)).length !== 3)) console.warn('Missing claw armor segment.');
