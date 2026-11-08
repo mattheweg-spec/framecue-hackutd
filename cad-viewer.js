@@ -169,14 +169,14 @@ try {
     const center = bounds.getCenter(new THREE.Vector3());
     const size = bounds.getSize(new THREE.Vector3());
     modelRoot.position.sub(center);
-    const distance = Math.max(14, Math.max(size.x, size.y, size.z) * 1.35);
+    const distance = Math.max(14, Math.max(size.x, size.y, size.z) * 1.05);
     initialCamera.set(distance * 0.98, distance * 0.82, distance * 1.05);
     resetView();
     viewer.classList.add('ready');
-    viewer.setAttribute('aria-label', 'Interactive 3D Fusion assembly. The active claw fingers press toward the shoe for left, center, or right cues.');
+    viewer.setAttribute('aria-label', 'Interactive 3D Fusion assembly. The active segmented claw presses toward the shoe for left, center, or right cues.');
     if (fallback) fallback.hidden = true;
     modelReady = true;
-    if (cueNames.some(name => actuators.get(name)?.length !== 3)) console.warn('Expected three CAD fingers for each cue.');
+    if (cueNames.some(name => actuators.get(name)?.length !== 6)) console.warn('Expected three plates and three ridges for each cue.');
     render(0);
   }
 

@@ -33,7 +33,7 @@ Browser camera access requires a secure context. `http://localhost:3000` is suit
 3. Periodically send a reduced-size frame to Nemotron for a slower reference scan.
 4. Keep the NVIDIA key on the local server; never expose it in the browser.
 
-The 3D viewer loads the Fusion assembly exported to `CAD/web-model/`. Drag to rotate the model and scroll or pinch to zoom. The same left / center / right cue selected by local detections and Nemotron moves and lights the matching three-finger claw toward the shoe; the preview buttons can trigger each state manually. This is a visual animation of the proposed pressure cue, not a pressure simulation or physical actuator.
+The 3D viewer loads the Fusion assembly exported to `CAD/web-model/`. Drag to rotate the model and scroll or pinch to zoom. The same left / center / right cue selected by local detections and Nemotron moves and lights the matching segmented claw toward the shoe; the preview buttons can trigger each state manually. This is a visual animation of the proposed pressure cue, not a pressure simulation or physical actuator.
 
 ## Files
 
@@ -41,6 +41,7 @@ The 3D viewer loads the Fusion assembly exported to `CAD/web-model/`. Drag to ro
 - `cad-viewer.js` — interactive Three.js viewer and animated claw meshes driven by the app's cue state.
 - `CAD/web-model/framecue-assembly.obj` and `.mtl` — Fusion assembly mesh and materials used by the web viewer.
 - `CAD/fusion_claw_revision.py` — Fusion API construction script for the separate rounded claw fingers and hinge axles; the saved Fusion assembly contains the resulting components.
+- `CAD/fusion_segmented_claws.py` — Fusion construction script for the current faceted plates, ridges and joint pins.
 - `server.js` — static web server, protected NVIDIA API call, response validation, and cue mapping.
 - `.env.example` — key setup template; copy to the ignored `.env.local` file.
 - `.gitignore` — excludes local secrets and the uploaded `drive-photos` directory.
