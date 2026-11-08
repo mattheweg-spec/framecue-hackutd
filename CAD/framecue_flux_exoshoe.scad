@@ -115,6 +115,30 @@ module haptic_pod(x,y,c=[0.15,0.72,0.79]){
   color([0.73,0.94,0.32]) translate([x,y,shoe_height+11]) cylinder(d=3,h=1.3);
 }
 
+module navigation_motor(x,y,z){
+  // Three distinct ankle-mounted motors encode route direction; separate from the instep hazard pushers.
+  color([0.08,0.13,0.15]) translate([x,y,z]) scale([1,.82,.72]) sphere(d=12);
+  color([0.24,0.78,0.72]) translate([x,y,z+3.6]) scale([1,.86,.48]) sphere(d=7);
+  color([0.71,0.91,0.83]) translate([x,y,z+5.1]) cylinder(d=2.6,h=1.2);
+}
+
+module navigation_ankle_cuff(){
+  // Open two-rail cuff sits above the heel; four slim ribs keep it visually tied to the shoe frame.
+  cuff_x=28; cuff_rx=31; cuff_ry=39;
+  color([0.12,0.19,0.21])
+    for(z=[82,108]) scale([1,cuff_ry/cuff_rx,1]) translate([cuff_x,0,z]) rotate_extrude(convexity=4) translate([cuff_rx,0]) circle(r=1.35,$fn=24);
+  color([0.24,0.36,0.38])
+    for(a=[0:90:270]) translate([cuff_x+cuff_rx*cos(a),cuff_ry*sin(a),95]) cylinder(d=3.2,h=26,center=true,$fn=16);
+  // Support forks connect the cuff to the outer heel frame, not under the sole.
+  color([0.12,0.19,0.21]) for(s=[-1,1]) hull(){
+    translate([25,s*(railY-1),68]) sphere(d=4);
+    translate([25,s*33,82]) sphere(d=4);
+  }
+  navigation_motor(cuff_x,-cuff_ry-2,94);
+  navigation_motor(cuff_x+cuff_rx+2,0,94);
+  navigation_motor(cuff_x,cuff_ry+2,94);
+}
+
 if(show_shoe) shoe_proxy();
 side_shell(-1); side_shell(1); heel_collar();
 bridge(8,23,7,5);
@@ -128,3 +152,4 @@ controller();
 haptic_pod(L*.58,-25,[0.18,0.77,0.83]);
 haptic_pod(L*.58,0,[0.91,0.68,0.28]);
 haptic_pod(L*.58,25,[0.94,0.36,0.33]);
+navigation_ankle_cuff();

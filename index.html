@@ -51,9 +51,9 @@
     .wearable-svg .cue-module.active{opacity:1;filter:drop-shadow(0 0 7px currentColor)}
     .wearable-svg .cue-module.active .module-ring{stroke:currentColor;stroke-width:3.5}
     .wearable-svg .cue-module.active .module-core{fill:currentColor}
-    .wearable-svg .cue-module.left{color:#71e2dc}
-    .wearable-svg .cue-module.center{color:#f5c65f}
-    .wearable-svg .cue-module.right{color:#ff8277}
+    .wearable-svg .cue-module.left{color:#ff6464}
+    .wearable-svg .cue-module.center{color:#ff6464}
+    .wearable-svg .cue-module.right{color:#ff6464}
     .wearable-svg text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em}
     .assembly-viewer{position:relative;width:100%;height:clamp(190px,46vw,252px);overflow:hidden;border:1px solid #385057;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#263b42,#111d23 78%);touch-action:none}
     .assembly-viewer canvas{display:block;width:100%;height:100%;outline:none}
@@ -65,6 +65,19 @@
     .assembly-reset{position:absolute;right:9px;bottom:8px;border:1px solid #536a70;border-radius:999px;background:#14242bdc;color:#d9e8e5;padding:5px 9px;font-size:9px}
     .assembly-readout{position:absolute;right:9px;top:8px;border:1px solid #3b555b;border-radius:999px;background:#101b20dc;color:#c7d8d6;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
     .assembly-note{margin:8px 2px 0;color:#9dafb3;font-size:9px;line-height:1.45}
+    .haptic-channel{margin-top:12px;padding:11px 12px;border:1px solid #315357;border-radius:12px;background:#14242a}
+    .haptic-channel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:#b7d1ce;letter-spacing:.08em;text-transform:uppercase}
+    .haptic-channel-head strong{font-size:10px;color:#74e3d4}
+    .haptic-channel-body{display:flex;align-items:center;gap:12px;margin-top:9px}
+    .ankle-map{width:92px;height:62px;flex:none}
+    .ankle-map .band{fill:#263b40;stroke:#87a7a4;stroke-width:2}
+    .ankle-map .motor{fill:#203238;stroke:#607d7d;stroke-width:2;transition:fill .18s,stroke .18s,filter .18s}
+    .ankle-map .motor.active{fill:#64e2d1;stroke:#c6fff2;filter:drop-shadow(0 0 5px #64e2d1)}
+    .nav-readout{font-size:11px;line-height:1.45;color:#dceae7}
+    .nav-readout span{display:block;margin-top:3px;color:#90aaa8;font-size:9px}
+    .nav-preview{display:flex;gap:6px;margin-top:9px}
+    .nav-preview button{flex:1;padding:7px 5px;border:1px solid #36575a;border-radius:8px;background:#20363b;color:#bcece4;font-size:9px}
+    .nav-preview button.active{border-color:#71e4d4;background:#294c4d;color:#d9fff7}
     .gps-panel{margin-top:14px;padding:14px;border:1px solid #344850;border-radius:15px;background:#142129}.address-label{display:block;color:#aebdc0;font-size:11px;margin:8px 0 5px}.address-entry{display:flex;gap:7px}.address-entry input{min-width:0;flex:1;padding:9px;border:1px solid #3b5158;border-radius:8px;background:#101a1f;color:#eaf1ee}.gps-places{display:grid;gap:5px;margin-top:6px}.gps-place{padding:8px 10px;border:1px solid #33474f;border-radius:8px;background:#1a2a31;color:#e3ece9;text-align:left;font-size:11px}.route-step{padding:10px 12px;margin-top:8px;border-radius:10px;background:#0f191f;color:#e7efed;font-size:12px;line-height:1.4;min-height:40px}
     .zone-labels{font-size:9px;letter-spacing:.16em;color:#abc0bc;margin-top:0}
     @media(max-width:520px){.wearable-svg{max-height:178px}.wearable{padding:10px}}
@@ -79,7 +92,7 @@
     </header>
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">Observe · Interpret · Cue</p><h2 id="page-title">A scene becomes a tactile signal.</h2></div>
-      <p class="sub">A lightweight on-device model tracks common objects for faster updates; NVIDIA Nemotron adds slower scene checks. The wearable shows a simulated directional cue.</p>
+      <p class="sub">A lightweight on-device model tracks common objects for faster updates; NVIDIA Nemotron adds slower scene checks. Obstacle location and route direction use separate simulated haptic zones.</p>
     </section>
     <div class="main-grid">
       <section class="card camera-card" aria-label="Camera input">
@@ -113,17 +126,17 @@
           </div>
         </section>
         <section class="card side-card" aria-labelledby="cue-title">
-          <div class="card-head"><h3 id="cue-title">Simulated wearable</h3><span class="status-chip" id="cueChip">NO CUE</span></div>
+          <div class="card-head"><h3 id="cue-title">Simulated wearable</h3><span class="status-chip" id="cueChip">AVOIDANCE CLEAR</span></div>
           <div class="wearable" role="group" aria-label="FLUX over-shoe exoskeleton concept with interactive simulated tactile cue modules">
             <div class="wearable-top"><span>FLUX / OVER-SHOE</span><span>ASSISTIVE NAV</span></div>
             <div class="assembly-viewer" id="assemblyViewer" aria-label="Interactive 3D FrameCue Fusion assembly">
               <canvas id="assemblyCanvas" tabindex="0" aria-label="3D assembly. Drag to rotate; use the mouse wheel or pinch to zoom."></canvas>
               <div class="assembly-loading" id="assemblyLoading" role="status">Loading the editable Fusion assembly…</div>
-              <div class="assembly-readout" id="assemblyReadout">PRESSURE STATE · CLEAR</div>
+              <div class="assembly-readout" id="assemblyReadout">AVOIDANCE · CLEAR</div>
               <span class="assembly-hint">DRAG TO ROTATE · SCROLL TO ZOOM</span>
               <button class="assembly-reset" id="assemblyReset" type="button">Reset view</button>
             </div>
-            <p class="assembly-note">Live detections curl the matching claw toward the shoe. Drag to inspect the CAD assembly; this is a visual simulation.</p>
+            <p class="assembly-note">Instep claws mark obstacle direction. The separate ankle band marks the next route direction. Both are simulated haptic outputs.</p>
             <svg class="wearable-svg wearable-fallback" id="wearableFallback" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden>
               <defs><linearGradient id="shellShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40585d"/><stop offset="1" stop-color="#1c2b31"/></linearGradient></defs>
               <path class="shoe-shell" fill="url(#shellShade)" d="M59 107c4-20 20-38 43-47l46-18c25-10 54-14 83-13l75 5c34 2 58 14 72 37l22 36c8 13 8 27-2 37-10 10-30 15-58 17l-196 12c-42 2-69-4-82-18-8-9-10-20-3-48Z"/>
@@ -143,14 +156,26 @@
             </svg>
             <div class="zone-labels"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
           </div>
-          <div class="cue-buttons" aria-label="Manual cue preview controls"><button class="cue-button" data-cue="left">Preview left</button><button class="cue-button" data-cue="center">Preview center</button><button class="cue-button" data-cue="right">Preview right</button></div>
+          <div class="zone-labels" aria-label="Obstacle cue locations"><span>OBSTACLE · INSTEP CLAWS</span></div>
+          <div class="cue-buttons" aria-label="Manual obstacle cue preview controls"><button class="cue-button" data-cue="left">Preview left hazard</button><button class="cue-button" data-cue="center">Preview center hazard</button><button class="cue-button" data-cue="right">Preview right hazard</button></div>
+          <section class="haptic-channel" aria-label="Separate route navigation haptics at the ankle">
+            <div class="haptic-channel-head"><span>Route guidance · ankle band</span><strong id="navCueChip">WAITING</strong></div>
+            <div class="haptic-channel-body">
+              <svg class="ankle-map" viewBox="0 0 120 76" role="img" aria-label="Three separate route haptic motors on an ankle band">
+                <path class="band" d="M34 11c17-8 35-8 52 0l-5 50c-14 7-28 7-42 0z"/>
+                <circle class="motor" id="navMotorLeft" cx="38" cy="36" r="8"/><circle class="motor" id="navMotorCenter" cx="60" cy="14" r="8"/><circle class="motor" id="navMotorRight" cx="82" cy="36" r="8"/>
+                <path d="M60 3v7m-4-3 4 4 4-4" fill="none" stroke="#86aaa5" stroke-width="1.5"/>
+              </svg>
+              <div class="nav-readout"><strong id="navCueText">Waiting for a route direction</strong><span>Left / forward / right motors signal turns independently of the shoe-mounted obstacle claws.</span></div>
+            </div>
+            <div class="nav-preview" aria-label="Navigation haptic preview controls"><button type="button" data-nav-cue="left">Preview left</button><button type="button" data-nav-cue="center">Preview forward</button><button type="button" data-nav-cue="right">Preview right</button></div>
+          </section>
         </section>
         <section class="card side-card" aria-labelledby="workflow-title">
           <h3 id="workflow-title">Workflow log</h3><ul class="log" id="log" aria-live="polite"><li><time>--:--</time>Waiting for first camera frame.</li></ul>
         </section>
       </div>
     </div>
-    <aside class="safety"><strong>Prototype only</strong><span>Depth and movement are rough estimates from changing image boxes, not measured distance or collision prediction. Cues mark a likely obstacle location, not a safe route. Do not rely on this experimental simulation for navigation.</span></aside>
     <footer class="footer"><span>Local detection stays on this computer; periodic reference frames go to NVIDIA.</span><span>FrameCue · HackUTD NVIDIA track prototype</span></footer>
   </main>
   <script>
@@ -203,8 +228,19 @@
       document.querySelectorAll('.cue-button').forEach(button => button.classList.toggle('active', source === 'preview' && button.dataset.cue === cue));
       window.frameCue3D?.setCue(cue, source);
       const chip = document.querySelector('#cueChip');
-      chip.textContent = cue === 'clear' ? 'NO OBJECT CUE' : `${cue.toUpperCase()} ZONE`;
+      chip.textContent = cue === 'clear' ? 'AVOIDANCE CLEAR' : `AVOIDANCE · ${cue.toUpperCase()}`;
       chip.className = `status-chip ${cue === 'clear' ? '' : 'good'}`;
+    }
+    function setNavigationCue(cue, source = 'route') {
+      const active = ['left', 'center', 'right'].includes(cue) ? cue : 'clear';
+      for (const name of ['left', 'center', 'right']) document.querySelector(`#navMotor${name[0].toUpperCase()}${name.slice(1)}`).classList.toggle('active', active === name);
+      document.querySelectorAll('[data-nav-cue]').forEach(button => button.classList.toggle('active', source === 'preview' && button.dataset.navCue === active));
+      const chip = document.querySelector('#navCueChip');
+      const labels = { left: 'Turn left', center: 'Go forward', right: 'Turn right' };
+      chip.textContent = active === 'clear' ? 'WAITING' : source === 'preview' ? `PREVIEW · ${active.toUpperCase()}` : active.toUpperCase();
+      document.querySelector('#navCueText').textContent = active === 'clear' ? 'Waiting for a route direction' : labels[active];
+      window.frameCue3D?.setNavigationCue(active);
+      if (source === 'preview' && active !== 'clear') addLog(`Navigation preview: ${labels[active]} at the ankle band.`);
     }
     function showCue(cue, source = 'analysis') {
       setCueVisual(cue, source);
@@ -676,7 +712,7 @@
     function decodePolyline6(encoded){let i=0,lat=0,lon=0,out=[];while(i<encoded.length){let result=0,shift=0,b;do{b=encoded.charCodeAt(i++)-63;result|=(b&31)<<shift;shift+=5}while(b>=32);lat+=result&1?~(result>>1):result>>1;result=0;shift=0;do{b=encoded.charCodeAt(i++)-63;result|=(b&31)<<shift;shift+=5}while(b>=32);lon+=result&1?~(result>>1):result>>1;out.push([lat/1e6,lon/1e6])}return out}
     function distanceMeters(a,b){const rad=x=>x*Math.PI/180,dLat=rad(b[0]-a[0]),dLon=rad(b[1]-a[1]),x=Math.sin(dLat/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dLon/2)**2;return 12742000*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
     function activeManeuverCue(){const text=maneuvers[maneuverIndex]?.instruction?.toLowerCase()||'';return /left/.test(text)?'left':/right/.test(text)?'right':'center'}
-    function showRouteStep(){if(maneuverIndex>=maneuvers.length){routeStep.textContent='You have reached the destination.';setCueVisual('clear','gps');return}const m=maneuvers[maneuverIndex];routeStep.textContent=`${m.instruction} · ${Math.round(m.length*1000)} m`;setCueVisual(activeManeuverCue(),'gps')}
+    function showRouteStep(){if(maneuverIndex>=maneuvers.length){routeStep.textContent='You have reached the destination.';setNavigationCue('clear');return}const m=maneuvers[maneuverIndex];routeStep.textContent=`${m.instruction} · ${Math.round(m.length*1000)} m`;setNavigationCue(activeManeuverCue())}
     const addressInput=document.querySelector('#gpsAddress'), placeList=document.querySelector('#gpsPlaces'), gpsStartButton=document.querySelector('#gpsStart');
     let gpsLocationEnabled=false;
     function refreshGpsStart(){gpsStartButton.disabled=!gpsLocationEnabled||!document.querySelector('#gpsLat').value}
@@ -700,7 +736,8 @@
       document.querySelector('#gpsStart').disabled=true;document.querySelector('#gpsStop').disabled=false;
       gpsWatch=navigator.geolocation.watchPosition(pos=>{if(!routePoints.length)return;const here=[pos.coords.latitude,pos.coords.longitude],next=maneuvers[maneuverIndex];if(!next)return;const target=routePoints[Math.min(next.end_shape_index,routePoints.length-1)];if(distanceMeters(here,target)<22){maneuverIndex++;showRouteStep()}gpsStatus.textContent=`GPS accuracy ±${Math.round(pos.coords.accuracy)} m · Step ${Math.min(maneuverIndex+1,maneuvers.length)} of ${maneuvers.length}`},error=>{gpsStatus.textContent=`GPS error: ${error.message}`},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
     });
-    document.querySelector('#gpsStop').addEventListener('click',()=>{if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;routePoints=[];maneuvers=[];maneuverIndex=0;document.querySelector('#gpsStop').disabled=true;document.querySelector('#gpsChip').textContent=gpsLocationEnabled?'LOCATION ON':'GPS OFF';routeStep.textContent='Route instructions appear here.';showCue('clear','gps');gpsStatus.textContent='GPS stopped.';refreshGpsStart()});
+    document.querySelector('#gpsStop').addEventListener('click',()=>{if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;routePoints=[];maneuvers=[];maneuverIndex=0;document.querySelector('#gpsStop').disabled=true;document.querySelector('#gpsChip').textContent=gpsLocationEnabled?'LOCATION ON':'GPS OFF';routeStep.textContent='Route instructions appear here.';setNavigationCue('clear');gpsStatus.textContent='GPS stopped.';refreshGpsStart()});
+    document.querySelectorAll('[data-nav-cue]').forEach(button=>button.addEventListener('click',()=>setNavigationCue(button.dataset.navCue,'preview')));
     window.addEventListener('pagehide', stopCamera);
     if (location.protocol === 'file:') {
       startButton.disabled = true;

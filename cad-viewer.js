@@ -13,6 +13,9 @@ const activeCueColor = '#ff343d';
 const activeCueThreeColor = new THREE.Color(activeCueColor);
 const targets = Object.fromEntries(cueNames.map(name => [name, 0]));
 const actuators = new Map();
+const navigationTargets = Object.fromEntries(cueNames.map(name => [name, 0]));
+const navigationMotors = new Map();
+const navigationColor = new THREE.Color('#63e2d1');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function setCue(cue) {
@@ -26,7 +29,15 @@ function setCue(cue) {
   }
 }
 
-window.frameCue3D = { setCue };
+function setNavigationCue(cue) {
+  const active = cueNames.includes(cue) ? cue : 'clear';
+  for (const name of cueNames) navigationTargets[name] = name === active ? 1 : 0;
+  if (reduceMotion.matches) {
+    for (const name of cueNames) updateNavigationMotor(navigationMotors.get(name), navigationTargets[name], 1);
+  }
+}
+
+window.frameCue3D = { setCue, setNavigationCue };
 
 function showFallback(error) {
   console.warn('FrameCue CAD viewer could not load:', error);
@@ -49,6 +60,80 @@ function updateActuator(actuator, amount, delta) {
     material.emissive.copy(activeCueThreeColor);
     material.emissiveIntensity = 0.3 * actuator.amount;
   }
+}
+
+function updateNavigationMotor(motor, amount, delta) {
+  if (!motor) return;
+  const blend = reduceMotion.matches ? 1 : 1 - Math.exp(-10 * Math.max(delta, 0));
+  motor.amount += (amount - motor.amount) * blend;
+  motor.cap.material.color.copy(motor.baseColor).lerp(navigationColor, motor.amount * 0.9);
+  motor.cap.material.emissive.copy(navigationColor);
+  motor.cap.material.emissiveIntensity = 0.12 + 0.55 * motor.amount;
+  motor.cap.scale.setScalar(1 + motor.amount * 0.12);
+  motor.ring.material.color.copy(motor.ringBaseColor).lerp(navigationColor, motor.amount * 0.9);
+  motor.ring.material.emissive.copy(navigationColor);
+  motor.ring.material.emissiveIntensity = 0.45 * motor.amount;
+}
+
+function addNavigationCuff(object) {
+  const cuff = new THREE.Group();
+  cuff.name = 'Navigation_Ankle_Cuff';
+  const shell = new THREE.MeshStandardMaterial({ color: '#27373e', metalness: 0.72, roughness: 0.38 });
+  const edge = new THREE.MeshStandardMaterial({ color: '#73878b', metalness: 0.82, roughness: 0.3 });
+  const ringX = 3.25, ringY = 4.05, centerX = 4.2;
+  for (const z of [8.25, 10.75]) {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(1, 0.13, 8, 64), shell);
+    band.name = 'Ankle_Cuff_Rail';
+    band.scale.set(ringX, ringY, 1);
+    band.position.set(centerX, 0, z);
+    cuff.add(band);
+  }
+  const addRod = (start, end, radius, material, name) => {
+    const a = new THREE.Vector3(...start), b = new THREE.Vector3(...end), direction = b.clone().sub(a);
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, direction.length(), 10), material);
+    rod.name = name;
+    rod.position.copy(a).add(b).multiplyScalar(0.5);
+    rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    cuff.add(rod);
+  };
+  for (const [x, y] of [[centerX + ringX, 0], [centerX - ringX, 0], [centerX, ringY], [centerX, -ringY]]) {
+    addRod([x, y, 8.25], [x, y, 10.75], 0.12, edge, 'Cuff_Rib');
+  }
+  // Two slim supports meet the heel frame while keeping the separate ankle cue visible.
+  addRod([2.6, -5.7, 6.45], [2.6, -3.4, 8.25], 0.18, shell, 'Cuff_Frame_Support_Left');
+  addRod([2.6, 5.7, 6.45], [2.6, 3.4, 8.25], 0.18, shell, 'Cuff_Frame_Support_Right');
+
+  const podMaterial = new THREE.MeshStandardMaterial({ color: '#35464c', metalness: 0.68, roughness: 0.32 });
+  const directions = {
+    left: { position: [centerX, -ringY - 0.16, 9.5], normal: [0, -1, 0] },
+    center: { position: [centerX + ringX + 0.16, 0, 9.5], normal: [1, 0, 0] },
+    right: { position: [centerX, ringY + 0.16, 9.5], normal: [0, 1, 0] }
+  };
+  for (const name of cueNames) {
+    const { position, normal } = directions[name];
+    const pod = new THREE.Group();
+    pod.name = `Navigation_Motor_${name}`;
+    pod.position.set(...position);
+    pod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...normal));
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.72, 0.42, 24), podMaterial);
+    base.name = `Navigation_Motor_Carrier_${name}`;
+    pod.add(base);
+    const ringMaterial = new THREE.MeshStandardMaterial({ color: '#6f8588', metalness: 0.76, roughness: 0.28, emissive: '#63e2d1', emissiveIntensity: 0 });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.47, 0.09, 8, 24), ringMaterial);
+    ring.name = `Navigation_Motor_Ring_${name}`;
+    ring.position.y = 0.25;
+    pod.add(ring);
+    const capMaterial = new THREE.MeshStandardMaterial({ color: '#53686c', metalness: 0.3, roughness: 0.32, emissive: '#63e2d1', emissiveIntensity: 0.12 });
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 14), capMaterial);
+    cap.name = `Navigation_Motor_Cap_${name}`;
+    cap.position.y = 0.28;
+    pod.add(cap);
+    cuff.add(pod);
+    const motor = { cap, ring, baseColor: capMaterial.color.clone(), ringBaseColor: ringMaterial.color.clone(), amount: 0 };
+    navigationMotors.set(name, motor);
+    updateNavigationMotor(motor, navigationTargets[name], 1);
+  }
+  object.add(cuff);
 }
 
 try {
@@ -172,6 +257,7 @@ try {
       }
     });
     for (const name of cueNames) prepareClaw(object, name, movingParts.filter(part => part.name === name));
+    addNavigationCuff(object);
     modelRoot.add(object);
     modelRoot.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(modelRoot);
@@ -182,7 +268,7 @@ try {
     initialCamera.set(distance * 0.98, distance * 0.82, distance * 1.05);
     resetView();
     viewer.classList.add('ready');
-    viewer.setAttribute('aria-label', 'Interactive 3D Fusion assembly. The active segmented claw presses toward the shoe for left, center, or right cues.');
+    viewer.setAttribute('aria-label', 'Interactive FrameCue assembly. Red instep claws show obstacle location; the separate ankle cuff shows left, forward, or right route guidance.');
     if (fallback) fallback.hidden = true;
     modelReady = true;
     if (cueNames.some(name => movingParts.filter(part => part.name === name && /Finger_[123]$/.test(part.child.name)).length !== 3)) console.warn('Missing claw armor segment.');
@@ -204,7 +290,10 @@ try {
     frameHandle = requestAnimationFrame(render);
     const delta = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
-    for (const name of cueNames) updateActuator(actuators.get(name), targets[name], delta);
+    for (const name of cueNames) {
+      updateActuator(actuators.get(name), targets[name], delta);
+      updateNavigationMotor(navigationMotors.get(name), navigationTargets[name], delta);
+    }
     controls.update();
     renderer.render(scene, camera);
   }
