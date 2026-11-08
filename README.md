@@ -26,6 +26,10 @@ Camera frames are processed locally by COCO-SSD after its JavaScript libraries a
 
 Browser camera access requires a secure context. `http://localhost:3000` is suitable for the computer running the server, but a phone visiting the computer's local network address over plain HTTP may block camera access. For phone testing, use an HTTPS deployment or an HTTPS tunnel to this server. Configure `NVIDIA_API_KEY` as a private server environment variable; never put it in a public web page.
 
+## GPS place search
+
+Place search sends the current GPS position to the local server, which forwards it to Photon as a location bias so nearer matches rank more usefully. Nemotron receives the search text, candidate place names, and coarse distance bands to correct conservative spelling errors and rank only real geocoder results; it does not receive the raw GPS coordinates or generate destination coordinates. Results show distance and always require the user to select the exact destination. If location is not enabled, place search still works without nearby ranking.
+
 ## NVIDIA workflow
 
 1. Run COCO-SSD locally on the browser's video element for frequent detections.
@@ -44,7 +48,7 @@ The 3D viewer loads the Fusion assembly exported to `CAD/web-model/` and adds an
 - `CAD/fusion_navigation_cuff/` — Autodesk Fusion script and manifest. Add this folder from Fusion's Scripts and Add-Ins panel and run it with the FrameCue FLUX design open to add a separate ankle cuff and three rounded left / forward / right navigation motor pods.
 - `CAD/fusion_segmented_claws.py` — Fusion construction script for the current faceted plates, ridges and joint pins.
 - `CAD/fusion_refine_frame.py` — Fusion refinement script for hollow rail conduits, reinforced junctions, bearing collars, side supports and contact pads.
-- `server.js` — static web server, protected NVIDIA API call, response validation, and cue mapping.
+- `server.js` — static web server, protected NVIDIA scene and place-search calls, Photon location-biased geocoding, response validation, and cue mapping.
 - `.env.example` — key setup template; copy to the ignored `.env.local` file.
 - `.gitignore` — excludes local secrets and the uploaded `drive-photos` directory.
 - `CAD/framecue_flux_exoshoe.scad` — current adjustable FLUX concept: a close-fitting side chassis, slim top bands, heel cradle, controller pod, and three separated cue pods. Edit the length and width values at the top in OpenSCAD. This is still a visual concept and needs fit and structural review.

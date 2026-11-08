@@ -186,12 +186,218 @@ async function analyze(request, response) {
   }
 }
 
+function parseJsonObject(content) {
+  if (content && typeof content === 'object' && !Array.isArray(content)) {
+    if (typeof content.text === 'string') content = content.text;
+    else if (typeof content.content === 'string') content = content.content;
+    else return content;
+  }
+  const text = Array.isArray(content)
+    ? content.map(part => typeof part === 'string' ? part : part?.text || part?.content || '').join('\n')
+    : String(content || '');
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/```(?:json)?/gi, '').trim();
+  try {
+    const value = JSON.parse(cleaned);
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  } catch { /* Some model responses include a short preamble around the JSON. */ }
+  const start = cleaned.indexOf('{'), end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try {
+      const value = JSON.parse(cleaned.slice(start, end + 1).replace(/,\s*([}\]])/g, '$1'));
+      if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+    } catch { /* Report one clear parsing error below. */ }
+  }
+  throw new Error('Nemotron returned an unusable place-search response.');
+}
+
+function validOrigin(value) {
+  if (!value || typeof value !== 'object') return null;
+  const latitude = Number(value.latitude), longitude = Number(value.longitude);
+  return Number.isFinite(latitude) && Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+    ? { latitude, longitude }
+    : null;
+}
+
+function distanceBetweenMeters(a, b) {
+  const radians = value => value * Math.PI / 180;
+  const dLat = radians(b.latitude - a.latitude), dLon = radians(b.longitude - a.longitude);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a.latitude)) * Math.cos(radians(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 12742000 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function distanceBand(distance) {
+  if (distance == null) return 'unknown';
+  if (distance < 1000) return 'under 1 km';
+  if (distance < 5000) return '1 to 5 km';
+  if (distance < 20000) return '5 to 20 km';
+  return 'over 20 km';
+}
+
+function safePlaceCorrection(original, suggested) {
+  if (typeof suggested !== 'string') return original;
+  const cleaned = suggested.trim().replace(/\s+/g, ' ').slice(0, 160);
+  if (!cleaned) return original;
+  const normalize = value => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ');
+  const a = normalize(original), b = normalize(cleaned);
+  if (a === b) return cleaned;
+  // Accept conservative typos and spacing repairs. Reject changes that could silently replace the destination.
+  if (!a || !b || Math.max(a.length, b.length) > 120) return original;
+  const previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = previous[0];
+    previous[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = previous[j];
+      previous[j] = Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  const similarity = 1 - previous[b.length] / Math.max(a.length, b.length);
+  return similarity >= 0.75 ? cleaned : original;
+}
+
+async function photonSearch(query, origin) {
+  const endpoint = new URL('https://photon.komoot.io/api/');
+  endpoint.searchParams.set('q', query);
+  endpoint.searchParams.set('limit', '8');
+  if (origin) {
+    endpoint.searchParams.set('lat', String(origin.latitude));
+    endpoint.searchParams.set('lon', String(origin.longitude));
+  }
+  const result = await fetch(endpoint, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(12000) });
+  if (!result.ok) throw new Error(`Place search returned ${result.status}.`);
+  const data = await result.json();
+  return (Array.isArray(data.features) ? data.features : []).flatMap(feature => {
+    const coordinates = feature?.geometry?.coordinates;
+    const properties = feature?.properties;
+    if (!Array.isArray(coordinates) || coordinates.length < 2 || !properties) return [];
+    const longitude = Number(coordinates[0]), latitude = Number(coordinates[1]);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return [];
+    const label = [properties.name, properties.housenumber, properties.street,
+      properties.district || properties.suburb, properties.city || properties.town || properties.village,
+      properties.state, properties.country].filter(Boolean).join(', ').slice(0, 240);
+    if (!label) return [];
+    const distanceMeters = origin ? Math.round(distanceBetweenMeters(origin, { latitude, longitude })) : null;
+    return [{ label, latitude, longitude, distanceMeters, distanceBand: distanceBand(distanceMeters) }];
+  });
+}
+
+async function askNemotronForPlaces(key, query, candidates) {
+  const places = candidates.map((candidate, id) => ({ id, label: candidate.label, distance: candidate.distanceBand }));
+  const prompt = [
+    'You help clean up a destination search for a walking route.',
+    'Correct only obvious spelling or speech-recognition mistakes. Preserve the user’s intended place and every meaningful detail; do not invent or add a destination, city, or neighborhood.',
+    'Rank only the supplied geocoder candidates by how well they match the search. Prefer nearer candidates only when their names and place details are similarly plausible. A nearby mismatch is still a mismatch.',
+    'The candidate IDs are the only allowed destinations. Never create coordinates or choose a destination on the user’s behalf. If the request is ambiguous or no candidate fits, set needsClarification to true and explain briefly.',
+    `Search text: ${JSON.stringify(query)}`,
+    `Candidates: ${JSON.stringify(places)}`,
+    'Return only JSON with keys correctedQuery (string), rankedIds (array of supplied integer IDs from best to worst; empty if none fit), needsClarification (boolean), and clarification (short string).'
+  ].join('\n');
+  const apiResponse = await fetch(NVIDIA_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0,
+      max_tokens: 300,
+      stream: false
+    }),
+    signal: AbortSignal.timeout(25000)
+  });
+  const result = await apiResponse.json().catch(() => ({}));
+  if (!apiResponse.ok) throw new Error(typeof result?.error?.message === 'string' ? result.error.message.slice(0, 180) : `NVIDIA returned ${apiResponse.status}.`);
+  if (result.choices?.[0]?.finish_reason === 'length') throw new Error('Nemotron place-search response was cut off.');
+  return parseJsonObject(result.choices?.[0]?.message?.content);
+}
+
+function orderPlaceCandidates(candidates, decision) {
+  const rankings = Array.isArray(decision?.rankedIds) ? decision.rankedIds : [];
+  const ids = [...new Set(rankings.map(Number).filter(id => Number.isInteger(id) && id >= 0 && id < candidates.length))];
+  const ordered = ids.map(id => candidates[id]);
+  for (let index = 0; index < candidates.length; index++) {
+    if (!ids.includes(index)) ordered.push(candidates[index]);
+  }
+  return ordered;
+}
+
+async function searchPlaces(request, response) {
+  let payload;
+  try { payload = await readJson(request, 16 * 1024); }
+  catch (error) { return sendJson(response, error.status || 400, { error: error.message }); }
+  const query = typeof payload.query === 'string' ? payload.query.trim().slice(0, 160) : '';
+  if (query.length < 3) return sendJson(response, 400, { error: 'Enter at least three characters for a place search.' });
+  const origin = validOrigin(payload.origin);
+  let candidates;
+  try { candidates = await photonSearch(query, origin); }
+  catch (error) { return sendJson(response, 502, { error: `Place search unavailable: ${error.message}` }); }
+
+  const key = loadLocalKey();
+  let decision = null, correctedQuery = query, modelUsed = false, clarification = '';
+  if (key) {
+    let initialDecision = null;
+    try {
+      initialDecision = await askNemotronForPlaces(key, query, candidates);
+      decision = initialDecision;
+      modelUsed = true;
+    } catch (error) {
+      // Geocoder results remain available if NVIDIA is temporarily unavailable.
+      clarification = 'Nemotron could not check this search; review the nearby matches carefully.';
+      console.warn('Nemotron place search unavailable:', error.message);
+    }
+    if (initialDecision) {
+      const suggested = safePlaceCorrection(query, initialDecision.correctedQuery);
+      const normalize = value => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ');
+      if (normalize(suggested) !== normalize(query)) {
+        try {
+          const correctedCandidates = await photonSearch(suggested, origin);
+          if (correctedCandidates.length) {
+            correctedQuery = suggested;
+            candidates = correctedCandidates;
+            // Re-rank only real candidates produced by the corrected geocoder query.
+            try {
+              decision = await askNemotronForPlaces(key, correctedQuery, candidates);
+            } catch (error) {
+              decision = null;
+              clarification = 'The spelling was corrected, but Nemotron could not rank those matches. Check the destination names before selecting one.';
+              console.warn('Nemotron corrected-place ranking unavailable:', error.message);
+            }
+          }
+        } catch (error) {
+          // Keep the initial query and its valid matches if the corrected query is unavailable.
+          console.warn('Corrected Photon place search unavailable:', error.message);
+        }
+      }
+      if (!clarification && decision) clarification = typeof decision.clarification === 'string' ? decision.clarification.trim().slice(0, 180) : '';
+    }
+  }
+  const matches = orderPlaceCandidates(candidates, decision).map(candidate => ({
+    label: candidate.label,
+    latitude: candidate.latitude,
+    longitude: candidate.longitude,
+    distanceMeters: candidate.distanceMeters
+  }));
+  return sendJson(response, 200, {
+    matches,
+    correctedQuery,
+    corrected: correctedQuery !== query,
+    nearby: Boolean(origin),
+    modelUsed,
+    needsClarification: decision?.needsClarification === true,
+    clarification
+  });
+}
+
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.obj': 'text/plain; charset=utf-8', '.mtl': 'text/plain; charset=utf-8' };
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
   if (request.method === 'GET' && url.pathname === '/api/health') {
     return sendJson(response, 200, { configured: Boolean(loadLocalKey()), model: MODEL });
   }
+  if (request.method === 'POST' && url.pathname === '/api/search-places') return searchPlaces(request, response);
   if (request.method === 'POST' && url.pathname === '/api/analyze') return analyze(request, response);
   if (request.method !== 'GET') return sendJson(response, 405, { error: 'Method not allowed.' });
   const requested = url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname);
