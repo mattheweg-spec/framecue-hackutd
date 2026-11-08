@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101111">
+  <meta name="theme-color" content="#e4e7d7">
   <title>FrameCue — camera to tactile cue</title>
   <link rel="stylesheet" href="/framecue.css">
   <link rel="stylesheet" href="/field-notes.css">
@@ -25,13 +25,12 @@
   <a class="skip-link" href="#startButton">Skip to camera controls</a>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><div class="brandmark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5 13V5h8m6 0h8v8M5 19v8h8m6 0h8v-8M10 21l7-12-2 8h7" stroke="currentColor" stroke-width="3"/></svg></div><div><h1>Frame<span>Cue</span></h1><p>A little sense of direction.</p></div></div>
-      <div class="event-mark"><strong>HACKUTD / ZERODAY</strong><br>2026 · FIELD PROTOTYPE</div><div class="track">POWERED BY<br>NVIDIA NEMOTRON</div>
+      <div class="brand"><div class="brandmark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5 13V5h8m6 0h8v8M5 19v8h8m6 0h8v-8M10 21l7-12-2 8h7" stroke="currentColor" stroke-width="3"/></svg></div><div><h1>Frame<span>Cue</span></h1></div></div>
+      <div class="event-mark"><strong>HACKUTD / 2026</strong></div><div class="track">NVIDIA NEMOTRON</div>
     </header>
     <section class="intro" aria-labelledby="page-title">
-      <div class="intro-title"><p class="eyebrow"><span class="ink-star" aria-hidden="true">✳</span> A wearable idea, finding its feet.</p><h2 id="page-title">Find your own<br><em>way forward.</em></h2></div>
-      <div class="intro-story"><p class="sub"><b>A camera sees. A small cue follows.</b><br>Explore how a wearable could turn nearby obstacles and walking directions into two separate tactile signals.</p><div class="signal-key"><span><svg class="icon" aria-hidden="true"><use href="#icon-shoe"/></svg>Shoe: obstacle location</span><span><svg class="icon" aria-hidden="true"><use href="#icon-cuff"/></svg>Ankle: route direction</span></div><div class="edition">FRAMECUE × FLUX · INTERACTIVE CONCEPT</div></div>
-      <figure class="field-friend"><div class="friend-orbit" aria-hidden="true"></div><img src="/assets/penguin-map.png" width="1126" height="1397" alt="An ink-drawn penguin in oversized sneakers, studying a folded map." fetchpriority="high"><figcaption>one step, then the next.</figcaption><span class="friend-stamp" aria-hidden="true">FIELD NOTES<br>NO. 01 ↗</span></figure>
+      <div class="intro-title"><h2 id="page-title">Find your own<br><em>way forward.</em></h2><p class="sub">Camera awareness. A sense of direction.</p></div>
+      <figure class="field-friend"><div class="friend-orbit" aria-hidden="true"></div><img src="/assets/penguin-map.png" width="1126" height="1397" alt="An ink-drawn penguin in oversized sneakers, studying a folded map." fetchpriority="high"><figcaption>let’s wander.</figcaption></figure>
     </section>
     <div class="main-grid">
       <section class="card camera-card" aria-label="Camera input">
@@ -39,17 +38,17 @@
         <div class="video-frame" id="videoFrame">
           <video id="video" playsinline muted></video>
           <div class="detection-layer" id="detectionLayer" aria-hidden="true"></div>
-          <div class="placeholder" id="placeholder"><img class="camera-friend" src="/assets/penguin-frame.png" width="1181" height="1331" alt="" aria-hidden="true"><div class="placeholder-copy"><span class="hand-note">a fresh perspective ↙</span><strong>What’s out there?</strong><span>Start the camera to spot objects<br>and watch the shoe cues respond.</span><small>Try a person, a chair, or a bottle.</small></div><span class="frame-corner" aria-hidden="true"></span></div>
+          <div class="placeholder" id="placeholder"><img class="camera-friend" src="/assets/penguin-frame.png" width="1181" height="1331" alt="" aria-hidden="true"><div class="placeholder-copy"><strong>What’s out there?</strong><span>Start a scan. See what’s nearby.</span></div><span class="frame-corner" aria-hidden="true"></span></div>
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
-        <div class="controls camera-controls"><button class="primary" id="startButton"><svg class="icon" aria-hidden="true"><use href="#icon-camera"/></svg>Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled><svg class="icon" aria-hidden="true"><use href="#icon-stop"/></svg>Stop</button><span class="control-note">your view, translated.</span></div>
-        <details class="technical-note"><summary>Camera processing & privacy</summary><p class="privacy-note">Fast object detection runs in this browser. A smaller reference frame is sent to NVIDIA Nemotron about every 12 seconds. People are labeled only “person”; no identity or face analysis is requested. If the local model cannot load, the app falls back to slower cloud scanning.</p></details>
+        <div class="controls camera-controls"><button class="primary" id="startButton"><svg class="icon" aria-hidden="true"><use href="#icon-camera"/></svg>Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled><svg class="icon" aria-hidden="true"><use href="#icon-stop"/></svg>Stop</button></div>
+        <details class="technical-note"><summary>How scanning works</summary><p class="privacy-note">Fast object detection runs in this browser. A smaller reference frame is sent to NVIDIA Nemotron about every 12 seconds. People are labeled only “person”; no identity or face analysis is requested. If the local model cannot load, the app falls back to slower cloud scanning.</p></details>
         <section class="gps-panel" aria-labelledby="gps-title"><div class="card-head"><h3 id="gps-title"><span class="section-no" aria-hidden="true">02</span>Somewhere new</h3><span class="status-chip" id="gpsChip">GPS OFF</span></div>
           <label class="address-label" for="gpsAddress">Where are we headed?</label><div class="address-entry"><input id="gpsAddress" type="text" placeholder="A place, a café, an address…"><button class="secondary" id="gpsVoice" type="button" aria-label="Speak destination"><svg class="icon" aria-hidden="true"><use href="#icon-mic"/></svg>Speak</button><button class="secondary" id="gpsFind" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>Find</button></div>
           <div id="gpsPlaces" class="gps-places" role="listbox" aria-label="Matching places"></div>
           <input id="gpsLat" type="hidden"><input id="gpsLon" type="hidden">
           <div class="controls"><button class="secondary" id="gpsPermission"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg>Enable location</button><button class="primary" id="gpsStart" disabled><svg class="icon" aria-hidden="true"><use href="#icon-route"/></svg>Start walking route</button><button class="secondary" id="gpsStop" disabled><svg class="icon" aria-hidden="true"><use href="#icon-stop"/></svg>Stop</button></div>
-          <p id="gpsStatus" class="status-caption" aria-live="polite">First, enable location so we can find nearby places and start the route where you are.</p><div class="route-step" id="routeStep" aria-live="polite">Your next turn will appear here.</div>
+          <p id="gpsStatus" class="status-caption" aria-live="polite">Enable location to find nearby places.</p><div class="route-step" id="routeStep" aria-live="polite">Your next turn, here.</div>
           <details class="technical-note route-note"><summary>About the map & route cues</summary><p class="assembly-note">Route data © OpenStreetMap contributors via Photon and Valhalla. Route cues follow mapped turns. GPS can drift; this prototype does not detect hazards and is not a mobility aid.</p></details>
         </section>
       </section>
@@ -57,20 +56,20 @@
         <section class="card side-card wearable-card" aria-labelledby="cue-title">
           <div class="card-head"><h3 id="cue-title"><span class="section-no" aria-hidden="true">03</span>Meet FLUX</h3><span class="status-chip" id="cueChip">AVOIDANCE CLEAR</span></div>
           <div class="wearable" role="group" aria-label="FLUX over-shoe exoskeleton concept with interactive simulated tactile cue modules">
-            <div class="wearable-top"><span>A wearable with a little backbone.</span><span>3D CONCEPT</span></div>
             <div class="assembly-viewer" id="assemblyViewer" aria-label="Interactive 3D FrameCue Fusion assembly">
               <canvas id="assemblyCanvas" tabindex="0" aria-label="3D assembly. Drag to rotate; use the mouse wheel or pinch to zoom."></canvas>
               <div class="assembly-loading" id="assemblyLoading" role="status">Loading the editable Fusion assembly…</div>
-              <div class="assembly-readout" id="assemblyReadout">AVOIDANCE · CLEAR</div>
-              <span class="assembly-hint">DRAG TO ROTATE · SCROLL TO ZOOM</span>
+              <div class="sr-only" id="assemblyReadout">AVOIDANCE · CLEAR</div>
+              <span class="assembly-hint">Drag to explore</span>
               <button class="assembly-reset" id="assemblyReset" type="button">Reset view</button>
             </div>
+            <details class="technical-note mechanism-details"><summary>Explore the mechanism</summary>
             <div class="mechanism-controls" aria-label="Visual mechanism controls">
               <button class="secondary" id="cuffToggle" data-mechanism="cuff" type="button" aria-pressed="false" disabled>Release cuff latch</button>
               <button class="secondary" id="bindingToggle" data-mechanism="bindings" type="button" aria-pressed="false" disabled>Detach rail bindings</button>
               <span class="mechanism-status" id="mechanismStatus" role="status">MECHANISM PREVIEW</span>
             </div>
-            <details class="technical-note"><summary>How the mechanism connects</summary><p class="assembly-note">Use the preview controls to open the rear cuff latch and pull the rail pins. These controls animate the concept model; they do not actuate physical hardware.</p></details>
+            <p class="assembly-note">Open the cuff or release the rails. This is a simulated mechanism.</p></details>
             <svg class="wearable-svg wearable-fallback" id="wearableFallback" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden>
               <defs><linearGradient id="shellShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40585d"/><stop offset="1" stop-color="#1c2b31"/></linearGradient></defs>
               <path class="shoe-shell" fill="url(#shellShade)" d="M59 107c4-20 20-38 43-47l46-18c25-10 54-14 83-13l75 5c34 2 58 14 72 37l22 36c8 13 8 27-2 37-10 10-30 15-58 17l-196 12c-42 2-69-4-82-18-8-9-10-20-3-48Z"/>
@@ -88,12 +87,12 @@
               <text x="312" y="191" fill="#b6ccbf" font-size="8">3 CUE PODS</text>
               <path class="accent" d="M26 178h22m345 0h20"/>
             </svg>
-            <div class="zone-labels"><span>LEFT</span><span>CENTER</span><span>RIGHT</span></div>
+
           </div>
-          <div class="cue-section-title"><span><svg class="icon" aria-hidden="true"><use href="#icon-shoe"/></svg>Obstacle location <small>· shoe claws</small></span><span class="hand-note">try a cue ↙</span></div>
+          <div class="cue-section-title"><span><svg class="icon" aria-hidden="true"><use href="#icon-shoe"/></svg>Obstacles <small>· shoe</small></span><span class="hand-note">try a cue ↙</span></div>
           <div class="cue-buttons" aria-label="Manual obstacle cue preview controls"><button class="cue-button" data-cue="left"><span class="hazard-glyph hazard-left" aria-hidden="true"><i></i><i></i><i></i></span>Left obstacle</button><button class="cue-button" data-cue="center"><span class="hazard-glyph hazard-center" aria-hidden="true"><i></i><i></i><i></i></span>Center obstacle</button><button class="cue-button" data-cue="right"><span class="hazard-glyph hazard-right" aria-hidden="true"><i></i><i></i><i></i></span>Right obstacle</button></div>
           <section class="haptic-channel" aria-label="Separate route navigation haptics at the ankle">
-            <div class="haptic-channel-head"><span><svg class="icon" aria-hidden="true"><use href="#icon-cuff"/></svg>Route direction <small>· ankle band</small></span><strong id="navCueChip">WAITING</strong></div>
+            <div class="haptic-channel-head"><span><svg class="icon" aria-hidden="true"><use href="#icon-cuff"/></svg>Directions <small>· ankle</small></span><strong id="navCueChip">WAITING</strong></div>
             <div class="haptic-channel-body">
               <svg class="ankle-map" viewBox="0 0 120 76" role="img" aria-label="Split ankle cuff with a rear quick release, two detachable side links, and three route haptic motors">
                 <path class="band" d="M34 11c17-8 35-8 52 0l-5 50c-14 7-28 7-42 0z"/>
@@ -104,7 +103,7 @@
                 <circle class="motor" id="navMotorLeft" cx="38" cy="36" r="8"/><circle class="motor" id="navMotorCenter" cx="60" cy="14" r="8"/><circle class="motor" id="navMotorRight" cx="82" cy="36" r="8"/>
                 <path d="M60 3v7m-4-3 4 4 4-4" fill="none" stroke="#86aaa5" stroke-width="1.5"/>
               </svg>
-              <div class="nav-readout"><strong id="navCueText">Waiting for a route direction</strong><span>Left / forward / right motors signal turns independently of the shoe-mounted obstacle claws.</span></div>
+              <div class="nav-readout"><strong id="navCueText">Waiting for a route direction</strong></div>
             </div>
             <div class="nav-preview" aria-label="Navigation haptic preview controls"><button type="button" data-nav-cue="left"><svg class="icon" aria-hidden="true"><use href="#icon-left"/></svg>Try left</button><button type="button" data-nav-cue="center"><svg class="icon" aria-hidden="true"><use href="#icon-forward"/></svg>Try forward</button><button type="button" data-nav-cue="right"><svg class="icon" aria-hidden="true"><use href="#icon-right"/></svg>Try right</button></div>
           </section>
@@ -112,18 +111,18 @@
         <section class="card side-card analysis-card" aria-labelledby="analysis-title">
           <h3 id="analysis-title"><span class="section-no" aria-hidden="true">04</span>Making sense of it</h3>
           <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
-          <div class="model-result" aria-live="polite"><strong id="objectName">Every view has a story.</strong><p id="sceneReason">Start a scan to see what’s nearby and which obstacle gets priority.</p></div>
-          <div class="steps" aria-label="Processing steps">
+          <div class="model-result" aria-live="polite"><strong id="objectName">Ready when you are.</strong><p id="sceneReason">Start the camera to read the scene.</p></div>
+          <details class="technical-note"><summary>Processing details</summary><div class="steps" aria-label="Processing steps">
             <div class="step" id="stepCapture"><span class="num">1</span><span>Camera frame</span></div>
             <div class="step" id="stepNemotron"><span class="num">2</span><span>Nemotron scene check</span></div>
             <div class="step" id="stepCue"><span class="num">3</span><span>Simulated cue</span></div>
-          </div>
+          </div></details>
         </section>
-        <section class="card side-card log-card" aria-labelledby="workflow-title"><details><summary id="workflow-title">Signal log / processing events</summary><ul class="log" id="log" aria-live="polite"><li><time>--:--</time>Waiting for first camera frame.</li></ul></details>
+        <section class="card side-card log-card" aria-labelledby="workflow-title"><details><summary id="workflow-title">Activity log</summary><ul class="log" id="log" aria-live="polite"><li><time>--:--</time>Waiting for first camera frame.</li></ul></details>
         </section>
       </div>
     </div>
-    <footer class="footer"><span>Local detection stays on this computer; periodic reference frames go to NVIDIA.</span><span class="footer-signature">Made with curiosity. Built at HackUTD. <span aria-hidden="true">↗</span></span></footer>
+    <footer class="footer"><span>FrameCue × FLUX · Interactive prototype</span><span class="footer-signature">Built at HackUTD. <span aria-hidden="true">↗</span></span></footer>
   </main>
   <script>
     const video = document.querySelector('#video');
