@@ -12,9 +12,6 @@ Kd 0.000000 0.000000 0.000000
 newmtl FLUX_Left_Cue_Blue
 Kd 0.188235 0.231373 0.588235
 
-newmtl FLUX_Soft_Actuator
-Kd 0.152941 0.152941 0.152941
-
 newmtl FLUX_Center_Cue_Amber
 Kd 0.909804 0.678431 0.137255
 

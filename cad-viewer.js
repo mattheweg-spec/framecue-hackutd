@@ -22,7 +22,7 @@ function setCue(cue) {
     ? 'PRESSURE STATE · CLEAR'
     : `PRESSURE STATE · ${active.toUpperCase()}`;
   if (reduceMotion.matches) {
-    for (const name of cueNames) updateActuator(actuators.get(name), targets[name], 1);
+    for (const name of cueNames) for (const part of actuators.get(name) || []) updateActuator(part, targets[name], 1);
   }
 }
 
@@ -38,8 +38,7 @@ function updateActuator(actuator, amount, delta) {
   if (!actuator) return;
   const blend = reduceMotion.matches ? 1 : 1 - Math.exp(-9 * Math.max(delta, 0));
   actuator.amount += (amount - actuator.amount) * blend;
-  actuator.pivot.position.z = actuator.basePosition.z + actuator.amount * 0.38;
-  actuator.mesh.scale.z = actuator.baseScale.z * (1 + actuator.amount * 0.34);
+  actuator.pivot.position.z = actuator.basePosition.z - actuator.amount * 0.28;
   for (const { material, baseColor } of actuator.materials) {
     if (!material?.emissive) continue;
     material.color.copy(baseColor).lerp(activeCueThreeColor, actuator.amount);
@@ -128,11 +127,13 @@ try {
       baseScale: mesh.scale.clone(),
       amount: 0
     };
-    actuators.set(name, actuator);
+    if (!actuators.has(name)) actuators.set(name, []);
+    actuators.get(name).push(actuator);
     updateActuator(actuator, targets[name], 1);
   }
 
   function finishLoad(object) {
+    const movingParts = [];
     object.traverse(child => {
       if (!child.isMesh) return;
       child.castShadow = true;
@@ -155,12 +156,13 @@ try {
         }
       }
       for (const name of cueNames) {
-        if (child.name.toLowerCase().includes(`cue_module_${name} soft bladder envelope_body`.toLowerCase())) {
-          prepareBladder(child, name);
+        if (child.name.toLowerCase().startsWith(`claw_${name}_finger_`)) {
+          movingParts.push({ child, name });
           break;
         }
       }
     });
+    for (const { child, name } of movingParts) prepareBladder(child, name);
     modelRoot.add(object);
     modelRoot.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(modelRoot);
@@ -171,10 +173,10 @@ try {
     initialCamera.set(distance * 0.98, distance * 0.82, distance * 1.05);
     resetView();
     viewer.classList.add('ready');
-    viewer.setAttribute('aria-label', 'Interactive 3D Fusion assembly. The active pressure bladder rises for left, center, or right cues.');
+    viewer.setAttribute('aria-label', 'Interactive 3D Fusion assembly. The active claw fingers press toward the shoe for left, center, or right cues.');
     if (fallback) fallback.hidden = true;
     modelReady = true;
-    if (actuators.size !== 3) console.warn(`Expected 3 CAD bladder groups; found ${actuators.size}.`);
+    if (cueNames.some(name => actuators.get(name)?.length !== 3)) console.warn('Expected three CAD fingers for each cue.');
     render(0);
   }
 
@@ -193,7 +195,7 @@ try {
     frameHandle = requestAnimationFrame(render);
     const delta = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
-    for (const name of cueNames) updateActuator(actuators.get(name), targets[name], delta);
+    for (const name of cueNames) for (const part of actuators.get(name) || []) updateActuator(part, targets[name], delta);
     controls.update();
     renderer.render(scene, camera);
   }
