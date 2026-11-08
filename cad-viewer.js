@@ -16,6 +16,9 @@ const actuators = new Map();
 const navigationTargets = Object.fromEntries(cueNames.map(name => [name, 0]));
 const navigationMotors = new Map();
 const navigationColor = new THREE.Color('#63e2d1');
+const mechanismTargets = { cuffOpen: 0, bindingsDetached: 0 };
+let cuffGate = null;
+const cuffBindings = [];
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function setCue(cue) {
@@ -37,12 +40,25 @@ function setNavigationCue(cue) {
   }
 }
 
-window.frameCue3D = { setCue, setNavigationCue };
+function setCuffOpen(open) {
+  mechanismTargets.cuffOpen = open ? 1 : 0;
+  if (reduceMotion.matches && cuffGate) cuffGate.rotation.z = mechanismTargets.cuffOpen * 0.95;
+}
+
+function setBindingsDetached(detached) {
+  mechanismTargets.bindingsDetached = detached ? 1 : 0;
+  if (reduceMotion.matches) {
+    for (const binding of cuffBindings) binding.position.y = binding.userData.side * mechanismTargets.bindingsDetached * 0.85;
+  }
+}
+
+window.frameCue3D = { setCue, setNavigationCue, setCuffOpen, setBindingsDetached };
 
 function showFallback(error) {
   console.warn('FrameCue CAD viewer could not load:', error);
   viewer.hidden = true;
   fallback.hidden = false;
+  document.querySelectorAll('[data-mechanism]').forEach(button => { button.disabled = true; });
 }
 
 function updateActuator(actuator, amount, delta) {
@@ -91,19 +107,20 @@ function addNavigationCuff(object) {
     band.position.set(centerX, 0, z);
     cuff.add(band);
   }
-  const addRod = (start, end, radius, material, name) => {
+  const addRod = (start, end, radius, material, name, parent = cuff) => {
     const a = new THREE.Vector3(...start), b = new THREE.Vector3(...end), direction = b.clone().sub(a);
     const rod = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, direction.length(), 10), material);
     rod.name = name;
     rod.position.copy(a).add(b).multiplyScalar(0.5);
     rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
-    cuff.add(rod);
+    parent.add(rod);
   };
   for (const [x, y] of [[centerX + ringX, 0], [centerX, ringY], [centerX, -ringY]]) {
     addRod([x, y, 8.25], [x, y, 10.75], 0.16, edge, 'Cuff_Rib');
   }
   // Rear hinge and over-center clasp make the cuff visibly openable for entry and removal.
-  addRod([centerX, ringY, 8.25], [centerX, ringY, 10.75], 0.24, edge, 'Cuff_Hinge_Pin');
+  const hingeY = -ringY * Math.sin(gapAngle / 2);
+  addRod([rearX, hingeY, 8.25], [rearX, hingeY, 10.75], 0.24, edge, 'Cuff_Hinge_Pin');
   for (const z of [8.25, 10.75]) {
     const lug = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.48, 0.38), shell);
     lug.name = 'Cuff_Latch_Lug';
@@ -114,19 +131,21 @@ function addNavigationCuff(object) {
     cuff.add(secondLug);
   }
   const latch = new THREE.Group();
-  latch.name = 'Rear_Over_Center_Cuff_Latch';
+  latch.name = 'Hinged_Rear_Cuff_Gate';
+  latch.position.set(rearX, hingeY, 9.5);
   const latchBridge = new THREE.Mesh(new THREE.BoxGeometry(0.56, 1.65, 0.42), edge);
-  latchBridge.position.set(rearX - 0.02, 0, 9.5);
+  latchBridge.position.set(-0.02, -hingeY, 0);
   latch.add(latchBridge);
   const latchLever = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.42, 0.16), shell);
-  latchLever.position.set(rearX + 0.24, 0.03, 9.63);
+  latchLever.position.set(0.24, 0.03 - hingeY, 0.13);
   latchLever.rotation.z = -0.19;
   latch.add(latchLever);
   const latchPivot = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1.25, 16), edge);
-  latchPivot.position.set(rearX + 0.28, 0, 9.5);
+  latchPivot.position.set(0.28, -hingeY, 0);
   latchPivot.rotation.x = Math.PI / 2;
   latch.add(latchPivot);
   cuff.add(latch);
+  cuffGate = latch;
 
   const podMaterial = new THREE.MeshStandardMaterial({ color: '#35464c', metalness: 0.68, roughness: 0.32 });
   const directions = {
@@ -163,6 +182,7 @@ function addNavigationCuff(object) {
   for (const side of [-1, 1]) {
     const binding = new THREE.Group();
     binding.name = `Crampon_Rail_Binding_${side < 0 ? 'Left' : 'Right'}`;
+    binding.userData.side = side;
     const dockMaterial = new THREE.MeshStandardMaterial({ color: '#3b4a50', metalness: 0.78, roughness: 0.3 });
     const pinMaterial = new THREE.MeshStandardMaterial({ color: '#a5b1b2', metalness: 0.88, roughness: 0.25 });
     const supportPairs = [
@@ -172,8 +192,8 @@ function addNavigationCuff(object) {
     for (let index = 0; index < supportPairs.length; index++) {
       const { cuff: upper, rail: lower } = supportPairs[index];
       const lerp = amount => lower.map((value, axis) => value + (upper[axis] - value) * amount);
-      addRod(lower, lerp(0.64), 0.3, shell, `Cuff_Link_Sleeve_${index + 1}`);
-      addRod(lerp(0.48), upper, 0.18, edge, `Indexed_Cuff_Link_Bar_${index + 1}`);
+      addRod(lower, lerp(0.64), 0.3, shell, `Cuff_Link_Sleeve_${index + 1}`, binding);
+      addRod(lerp(0.48), upper, 0.18, edge, `Indexed_Cuff_Link_Bar_${index + 1}`, binding);
       const dock = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.05, 0.82), dockMaterial);
       dock.name = `Crampon_Rail_Dock_${index + 1}`;
       dock.position.set(lower[0], lower[1], lower[2]);
@@ -199,6 +219,7 @@ function addNavigationCuff(object) {
       }
     }
     cuff.add(binding);
+    cuffBindings.push(binding);
   }
   object.add(cuff);
 }
@@ -336,6 +357,7 @@ try {
     resetView();
     viewer.classList.add('ready');
     viewer.setAttribute('aria-label', 'Interactive FrameCue assembly. Red instep claws show obstacle location; the split, quick-release ankle cuff connects to the shoe frame through adjustable side links with pull pins and shows left, forward, or right route guidance.');
+    document.querySelectorAll('[data-mechanism]').forEach(button => { button.disabled = false; });
     if (fallback) fallback.hidden = true;
     modelReady = true;
     if (cueNames.some(name => movingParts.filter(part => part.name === name && /Finger_[123]$/.test(part.child.name)).length !== 3)) console.warn('Missing claw armor segment.');
@@ -357,6 +379,12 @@ try {
     frameHandle = requestAnimationFrame(render);
     const delta = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
+    const mechanismBlend = reduceMotion.matches ? 1 : 1 - Math.exp(-8 * delta);
+    if (cuffGate) cuffGate.rotation.z += (mechanismTargets.cuffOpen * 0.95 - cuffGate.rotation.z) * mechanismBlend;
+    for (const binding of cuffBindings) {
+      const targetY = binding.userData.side * mechanismTargets.bindingsDetached * 0.85;
+      binding.position.y += (targetY - binding.position.y) * mechanismBlend;
+    }
     for (const name of cueNames) {
       updateActuator(actuators.get(name), targets[name], delta);
       updateNavigationMotor(navigationMotors.get(name), navigationTargets[name], delta);

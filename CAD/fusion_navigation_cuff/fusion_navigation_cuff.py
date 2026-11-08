@@ -7,6 +7,8 @@ import traceback
 def run(context):
     app = adsk.core.Application.get()
     ui = app.userInterface
+    created_occurrences = []
+    replacement_ready = False
     try:
         design = adsk.fusion.Design.cast(app.activeProduct)
         if not design:
@@ -15,17 +17,18 @@ def run(context):
         if not app.activeDocument.name.startswith('FrameCue FLUX'):
             raise RuntimeError('Open the FrameCue FLUX assembly first.')
 
-        # Replace only the previous ankle-cuff add-on; the shoe frame and instep claws stay intact.
+        # Hold prior cuff occurrences until the replacement has been built successfully.
         replace_names = {
             'Navigation_Ankle_Cuff', 'Navigation_Cuff_Assembly',
             'Cuff_Release_Gate', 'Cuff_Release_Lever',
             'Crampon_Rail_Binding_Left', 'Crampon_Rail_Binding_Right',
         }
-        for index in range(root.occurrences.count - 1, -1, -1):
+        previous_occurrences = []
+        for index in range(root.occurrences.count):
             occurrence = root.occurrences.item(index)
             name = occurrence.component.name
             if name in replace_names or name.startswith('Navigation_Motor_'):
-                occurrence.deleteMe()
+                previous_occurrences.append(occurrence)
 
         manager = adsk.fusion.TemporaryBRepManager.get()
         point = adsk.core.Point3D.create
@@ -48,6 +51,7 @@ def run(context):
             if any(body is None for _, body in bodies):
                 raise RuntimeError('Fusion could not construct all parts for ' + name + '.')
             occurrence = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+            created_occurrences.append(occurrence)
             component = occurrence.component
             component.name = name
             base = component.features.baseFeatures.add()
@@ -81,8 +85,8 @@ def run(context):
         # Hinged gate and over-center lever span the split rear. Releasing the lever opens the cuff.
         gate_bodies = [
             box_body('Rear_Gate_Bridge', (rear_x, 0, 9.5), (0.55, 1.9, 2.35)),
-            cylinder_between('Rear_Gate_Hinge_Pin', (rear_x - 0.36, -0.95, 8.2),
-                             (rear_x - 0.36, -0.95, 10.8), 0.15),
+            cylinder_between('Rear_Gate_Hinge_Pin', (rear_x, -0.42, 8.2),
+                             (rear_x, -0.42, 10.8), 0.15),
             cylinder_between('Latch_Cross_Pin', (rear_x, -0.85, 9.5),
                              (rear_x, 0.85, 9.5), 0.12),
             box_body('Over_Center_Lever_Handle', (rear_x + 0.28, 0.6, 9.62),
@@ -157,7 +161,21 @@ def run(context):
                                ('Rounded_Haptic_Cap_' + direction, cap)]
             add_component('Navigation_Motor_' + direction, motor_parts)
 
+        replacement_ready = True
+        # Remove the prior add-on only after every replacement part is constructed.
+        for occurrence in reversed(previous_occurrences):
+            if occurrence.isValid:
+                occurrence.deleteMe()
+
         app.activeViewport.refresh()
         ui.messageBox('Updated only the ankle module: open rear cam cuff, hinged gate, two rail bindings and captive pull pins. The exoskeleton frame and instep claws are unchanged.')
     except:
+        # A failed rebuild should leave the previous cuff in place and remove new partial parts.
+        if not replacement_ready:
+            for occurrence in reversed(created_occurrences):
+                try:
+                    if occurrence.isValid:
+                        occurrence.deleteMe()
+                except:
+                    pass
         ui.messageBox('The FrameCue ankle binding update failed:\n' + traceback.format_exc())

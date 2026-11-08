@@ -63,6 +63,7 @@
     .assembly-viewer.error .assembly-loading{color:#ffd69a}
     .assembly-hint{position:absolute;left:9px;bottom:8px;color:#9cb3b2;background:#0b141acc;border:1px solid #3b5156;border-radius:999px;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
     .assembly-reset{position:absolute;right:9px;bottom:8px;border:1px solid #536a70;border-radius:999px;background:#14242bdc;color:#d9e8e5;padding:5px 9px;font-size:9px}
+    .mechanism-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.mechanism-controls button{font-size:10px;padding:7px 10px}.mechanism-controls button[aria-pressed="true"]{border-color:#83b9a8;color:#c9f4df}.mechanism-status{margin-left:auto;align-self:center;color:#91a8a9;font-size:9px;letter-spacing:.06em}
     .assembly-readout{position:absolute;right:9px;top:8px;border:1px solid #3b555b;border-radius:999px;background:#101b20dc;color:#c7d8d6;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
     .assembly-note{margin:8px 2px 0;color:#9dafb3;font-size:9px;line-height:1.45}
     .haptic-channel{margin-top:12px;padding:11px 12px;border:1px solid #315357;border-radius:12px;background:#14242a}
@@ -137,7 +138,12 @@
               <span class="assembly-hint">DRAG TO ROTATE · SCROLL TO ZOOM</span>
               <button class="assembly-reset" id="assemblyReset" type="button">Reset view</button>
             </div>
-            <p class="assembly-note">Instep claws mark obstacles. The ankle cuff opens with a rear latch and docks to the shoe rails with two pull-pin bindings for route guidance.</p>
+            <div class="mechanism-controls" aria-label="Visual mechanism controls">
+              <button class="secondary" id="cuffToggle" data-mechanism="cuff" type="button" aria-pressed="false" disabled>Release cuff latch</button>
+              <button class="secondary" id="bindingToggle" data-mechanism="bindings" type="button" aria-pressed="false" disabled>Detach rail bindings</button>
+              <span class="mechanism-status" id="mechanismStatus" role="status">MECHANISM PREVIEW</span>
+            </div>
+            <p class="assembly-note">Use the preview controls to open the rear cuff latch and pull the rail pins. These controls animate the concept model; they do not actuate physical hardware.</p>
             <svg class="wearable-svg wearable-fallback" id="wearableFallback" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden>
               <defs><linearGradient id="shellShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40585d"/><stop offset="1" stop-color="#1c2b31"/></linearGradient></defs>
               <path class="shoe-shell" fill="url(#shellShade)" d="M59 107c4-20 20-38 43-47l46-18c25-10 54-14 83-13l75 5c34 2 58 14 72 37l22 36c8 13 8 27-2 37-10 10-30 15-58 17l-196 12c-42 2-69-4-82-18-8-9-10-20-3-48Z"/>
@@ -768,6 +774,10 @@
     });
     document.querySelector('#gpsStop').addEventListener('click',()=>{if(gpsWatch!=null)navigator.geolocation.clearWatch(gpsWatch);gpsWatch=null;routePoints=[];maneuvers=[];maneuverIndex=0;document.querySelector('#gpsStop').disabled=true;document.querySelector('#gpsChip').textContent=gpsLocationEnabled?'LOCATION ON':'GPS OFF';routeStep.textContent='Route instructions appear here.';setNavigationCue('clear');gpsStatus.textContent='GPS stopped.';refreshGpsStart()});
     document.querySelectorAll('[data-nav-cue]').forEach(button=>button.addEventListener('click',()=>setNavigationCue(button.dataset.navCue,'preview')));
+    const cuffToggle=document.querySelector('#cuffToggle'),bindingToggle=document.querySelector('#bindingToggle'),mechanismStatus=document.querySelector('#mechanismStatus');
+    const updateMechanismStatus=()=>{const open=cuffToggle.getAttribute('aria-pressed')==='true',detached=bindingToggle.getAttribute('aria-pressed')==='true';mechanismStatus.textContent=`${open?'CUFF OPEN':'CUFF CLOSED'} · ${detached?'PINS PULLED':'PINS LOCKED'}`};
+    cuffToggle.addEventListener('click',()=>{const open=cuffToggle.getAttribute('aria-pressed')!=='true';cuffToggle.setAttribute('aria-pressed',String(open));cuffToggle.textContent=open?'Close cuff latch':'Release cuff latch';window.frameCue3D?.setCuffOpen(open);updateMechanismStatus()});
+    bindingToggle.addEventListener('click',()=>{const detached=bindingToggle.getAttribute('aria-pressed')!=='true';bindingToggle.setAttribute('aria-pressed',String(detached));bindingToggle.textContent=detached?'Reconnect rail bindings':'Detach rail bindings';window.frameCue3D?.setBindingsDetached(detached);updateMechanismStatus()});
     window.addEventListener('pagehide', stopCamera);
     if (location.protocol === 'file:') {
       startButton.disabled = true;

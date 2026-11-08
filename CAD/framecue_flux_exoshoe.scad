@@ -151,7 +151,10 @@ module navigation_ankle_cuff(){
     for(a=[0:90:270]) if(a!=180) translate([cuff_x+cuff_rx*cos(a),cuff_ry*sin(a),95]) cylinder(d=4.2,h=26,center=true,$fn=18);
   // Hinged gate bridges the rear opening and swings clear when its over-center lever is released.
   color([0.20,0.30,0.33]) translate([cuff_x-cuff_rx,0,95]) cube([5,19,24],center=true);
-  color([0.56,0.65,0.65]) translate([cuff_x-cuff_rx-3,-10,95]) cylinder(d=4,h=27,center=true,$fn=18);
+  split_half_angle_deg=(0.34/2)*180/PI;
+  hinge_x=cuff_x-cuff_rx*cos(split_half_angle_deg);
+  hinge_y=-cuff_ry*sin(split_half_angle_deg);
+  color([0.56,0.65,0.65]) translate([hinge_x,hinge_y,95]) cylinder(d=4,h=27,center=true,$fn=18);
   color([0.45,0.57,0.58]) translate([cuff_x-cuff_rx+2,10,95]) rotate([0,0,-18]) cube([4,13,3],center=true);
   color([0.70,0.80,0.75]) translate([cuff_x-cuff_rx+4,16,95]) sphere(d=4,$fn=16);
   // Two indexed links per side dock into the exoskeleton side rails like a crampon binding.
