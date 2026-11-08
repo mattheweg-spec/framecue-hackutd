@@ -1,0 +1,273 @@
+/* FIELD NOTES / an illustrated layer over FrameCue's instrument UI.
+   Decorative marks stay outside the camera, cues, and dynamic readouts. */
+:root {
+  --bg: #151716;
+  --panel: #1e2220;
+  --paper: #f0eadb;
+  --text: #f4efe3;
+  --muted: #bac0b7;
+  --line: #4a5048;
+  --hand: "Segoe Print", "Bradley Hand", cursive;
+}
+
+body { background: var(--bg); }
+.app { max-width: 1490px; padding-top: 22px; }
+.icon-library { position: absolute; width: 0; height: 0; overflow: hidden; }
+.icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  vertical-align: middle;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+button .icon { margin-right: 7px; }
+.topbar { padding-bottom: 14px; margin-bottom: 18px; border-color: #64695a; }
+.brandmark { border-radius: 3px 0 5px 1px; box-shadow: 3px 3px 0 #080b08; }
+.brand p { text-transform: none; letter-spacing: .02em; font: 11px/1.4 "Segoe UI", sans-serif; }
+.event-mark { font-size: 10px; }
+.track { border-left-width: 2px; }
+
+/* The opening reads like a little illustrated magazine spread. */
+.intro {
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, .9fr) 200px;
+  gap: 26px;
+  padding: 0 0 19px;
+  margin-bottom: 20px;
+  min-height: 190px;
+  border-bottom: 1px dashed #747a64;
+}
+.intro h2 { font-size: clamp(38px, 4.2vw, 60px); line-height: 1.01; letter-spacing: -.015em; }
+.intro h2 em { color: var(--paper); z-index: 0; }
+.intro h2 em:after {
+  height: 9px; bottom: -1px; left: -2px; right: -7px;
+  z-index: -1; background: var(--mint); opacity: .8;
+  clip-path: polygon(0 32%, 97% 0, 100% 62%, 2% 100%);
+  transform: rotate(-1deg);
+}
+.eyebrow { display: flex; align-items: center; gap: 7px; letter-spacing: .04em; font-size: 10px; }
+.ink-star { font: 27px/1 "Segoe UI", sans-serif; transform: rotate(12deg); }
+.intro .sub { font-size: 12px; line-height: 1.65; max-width: 320px; }
+.intro .sub b { display: inline-block; font-size: 14px; margin-bottom: 3px; }
+.signal-key { display: grid; gap: 7px; margin-top: 13px; font-size: 11px; }
+.signal-key span { display: flex; align-items: center; gap: 8px; }
+.signal-key span:first-child .icon { color: var(--danger); }
+.signal-key span:last-child .icon { color: var(--cyan); }
+.edition { margin-top: 12px; font-size: 9px; letter-spacing: .07em; color: #a8b09e; }
+.field-friend { position: relative; height: 193px; margin: 0; isolation: isolate; }
+.field-friend img { width: 100%; height: 178px; object-fit: contain; position: relative; z-index: 1; }
+.friend-orbit {
+  position: absolute; width: 154px; height: 145px; left: 23px; top: 23px;
+  background: #dce68a; border-radius: 49% 52% 46% 55%;
+  transform: rotate(-12deg); opacity: .9;
+}
+.friend-orbit:before {
+  content: ""; position: absolute; inset: -8px 7px 9px -7px;
+  border: 1px solid #b8c37f; border-radius: 46% 51% 48% 53%; transform: rotate(22deg);
+}
+.field-friend figcaption {
+  position: relative; z-index: 2; margin: -5px -5px 0;
+  font: 12px/1.5 var(--hand); text-align: center; color: var(--paper); transform: rotate(-3deg);
+}
+.friend-stamp {
+  position: absolute; right: -3px; top: 15px; z-index: 2;
+  background: var(--paper); color: #282d23; border: 1px solid #161c13;
+  padding: 5px 7px; font: 8px/1.4 Consolas, monospace; transform: rotate(8deg);
+  box-shadow: 2px 2px 0 #0a0d0a;
+}
+
+/* Cards retain a quiet instrument-panel skeleton under the ink details. */
+.main-grid { grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); gap: 20px; }
+.card { border-radius: 5px 5px 3px 3px; border-color: #4c5348; box-shadow: 0 3px 0 #090d0959; }
+.camera-card, .side-card { padding: 16px; }
+.card-head h3, .side-card h3 {
+  font: 650 15px/1.35 "Segoe UI", Arial, sans-serif;
+  text-transform: none; letter-spacing: -.015em;
+}
+.section-no {
+  width: 25px; height: 25px; background: transparent; color: var(--paper);
+  border: 1px solid #929b7c; border-radius: 45% 49% 46% 51%;
+  font-size: 11px; transform: rotate(-5deg);
+}
+.live-pill { font: 11px/1.4 "Segoe UI", sans-serif; }
+.status-chip { border-radius: 2px; font-size: 9px; letter-spacing: .025em; padding: 5px 7px; }
+#cueChip.good { color: #ffd8cd; border-color: var(--danger); background: #482d26; }
+.hand-note { font-family: var(--hand); text-transform: none; font-weight: 400; letter-spacing: 0; }
+
+/* The penguin leaves the stage entirely when a camera stream starts. */
+.video-frame { border-color: #5d6658; border-radius: 2px; }
+/* Live geometry must follow the camera ratio, even on a narrow phone. */
+.video-frame.has-video { min-height: 0; }
+.placeholder {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 26px 26px 23px 15px; text-align: left;
+  background: radial-gradient(ellipse at 32% 52%, #394337 0, #252d25 43%, #1b231f 78%);
+}
+.placeholder:before {
+  content: "FRAME / 001"; top: 13px; left: 15px;
+  font: 9px/1.4 Consolas, monospace; letter-spacing: .12em; color: #bec7a7;
+}
+.placeholder:after {
+  content: ""; top: 28px; bottom: 27px; right: 24px; left: 24px;
+  border: 1px dashed #92a07538; transform: rotate(-1deg); pointer-events: none;
+}
+.camera-friend { width: 44%; height: 95%; max-height: 245px; object-fit: contain; z-index: 1; flex-shrink: 0; }
+.placeholder-copy { position: relative; z-index: 1; flex: 0 1 245px; }
+.placeholder .hand-note { display: block; color: var(--mint); margin: 0 0 12px; font-size: 13px; transform: rotate(-5deg); }
+.placeholder strong { font: 400 clamp(23px, 2.3vw, 33px)/1.07 Impact, "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: .01em; display: block; }
+.placeholder .placeholder-copy > span:not(.hand-note) { display: block; margin: 12px 0 0; font-size: 12px; color: #d6d9c9; }
+.placeholder small { display: block; margin-top: 15px; font: 10px/1.5 Consolas, monospace; color: #b8c2a6; }
+.placeholder .frame-corner { position: absolute; top: 15px; right: 15px; width: 18px; height: 18px; margin: 0; border-top: 2px solid var(--mint); border-right: 2px solid var(--mint); transform: rotate(2deg); }
+.control-note { align-self: center; margin-left: auto; padding: 3px 0; color: #c8d29f; font: 12px/1.5 var(--hand); transform: rotate(-2deg); }
+.primary, .secondary, .cue-button, .nav-preview button { border-radius: 3px; }
+.controls > button, .address-entry > button { display: inline-flex; align-items: center; justify-content: center; }
+.camera-controls .primary { box-shadow: 2px 2px 0 #050805; border-color: #d6e64e; }
+.primary:not(:disabled):hover { box-shadow: 0 0 0 2px #dfef5825; }
+.technical-note summary { font: 11px/1.5 "Segoe UI", sans-serif; letter-spacing: 0; text-transform: none; }
+
+/* A folded route note: warmer paper, a drawn trail, no extra animation. */
+.gps-panel {
+  margin-top: 16px; padding: 16px; border-radius: 2px 9px 2px 2px;
+  box-shadow: 3px 3px 0 #080c084d;
+  background: var(--paper) url('/assets/route-trail.svg') no-repeat right 10px top 47px / 96px 53px;
+}
+.gps-panel:before {
+  content: ""; position: absolute; height: 10px; width: 46px;
+  background: #d8dcacb8; border-left: 1px solid #b5ba87; border-right: 1px solid #b5ba87;
+  top: -5px; left: calc(50% - 23px); transform: rotate(-3deg); pointer-events: none;
+}
+.gps-panel .card-head { border-bottom-style: dashed; }
+.gps-panel .section-no { background: none; color: #293529; border-color: #5e6e58; }
+.address-label { font-size: 15px; font-weight: 650; margin-top: 12px; padding-right: 70px; }
+.address-entry { gap: 7px; }
+.address-entry input { background: #fffcf2; border-color: #89917d; padding: 12px 11px; }
+.gps-panel .primary { background: #293f36; }
+.gps-panel .secondary { background: #e8e5d6; }
+.gps-panel .status-caption { margin-top: 11px; }
+.route-step { background: #e0e3cf; border-color: #58765d; border-radius: 0 4px 4px 0; font-weight: 600; }
+.route-note { padding-top: 7px; }
+
+/* The wearable is an exhibit, with cues visually attached to their channels. */
+.wearable-top { font: 11px/1.4 "Segoe UI", sans-serif; letter-spacing: 0; }
+.wearable-top span:last-child { font: 9px/1.4 Consolas, monospace; letter-spacing: .06em; color: #c4ceba; }
+.assembly-viewer {
+  height: clamp(240px, 23vw, 305px); border-color: #74816c; border-radius: 2px;
+  background-image: linear-gradient(#becbb20b 1px, transparent 1px), linear-gradient(90deg, #becbb20b 1px, transparent 1px), radial-gradient(ellipse at 50% 45%, #4a5549 0, #29342b 58%, #1f2922 100%);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+.assembly-viewer:before { content: "FLUX / ASSEMBLY STUDY"; font-size: 9px; letter-spacing: .08em; }
+.assembly-viewer:after { border-style: dashed; border-color: #acbb8f29; }
+.assembly-readout { font-size: 9px; border-color: #738269; }
+.assembly-reset { border-radius: 2px; }
+.mechanism-controls button { background: #262e27; border-color: #626e58; }
+.mechanism-status { color: #b9c4ac; }
+.cue-section-title { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-top: 16px; }
+.cue-section-title > span:first-child { font-size: 12px; font-weight: 600; }
+.cue-section-title .icon { color: var(--danger); margin-right: 5px; }
+.cue-section-title small, .haptic-channel-head small { color: var(--muted); font: 10px "Segoe UI", sans-serif; white-space: nowrap; }
+.cue-section-title .hand-note { color: #e5c5ac; font-size: 12px; transform: rotate(-4deg); }
+.cue-buttons { gap: 8px; }
+.cue-button { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; min-height: 44px; font-size: 11px; background: #302824; border-color: #70544a; }
+.hazard-glyph { display: inline-flex; gap: 3px; height: 17px; align-items: center; }
+.hazard-glyph i { display: block; width: 4px; height: 11px; border: 1px solid #a17e70; transform: skewY(-12deg); }
+.hazard-left i:nth-child(1), .hazard-center i:nth-child(2), .hazard-right i:nth-child(3) { height: 17px; background: var(--danger); border-color: var(--danger); }
+.cue-button.active { outline: 1px solid var(--danger); outline-offset: 1px; }
+.haptic-channel { background: #243531; padding: 12px; border-left-width: 2px; border-radius: 0 4px 4px 0; }
+.haptic-channel-head { font: 600 12px/1.5 "Segoe UI", sans-serif; text-transform: none; letter-spacing: 0; align-items: center; }
+.haptic-channel-head .icon { color: var(--cyan); margin-right: 5px; }
+.haptic-channel-head strong { font: 9px/1.5 Consolas, monospace; text-align: right; }
+.nav-preview button { display: flex; align-items: center; justify-content: center; font-size: 11px; padding: 8px 5px; min-height: 38px; }
+.nav-preview .icon { width: 15px; height: 15px; flex-basis: 15px; color: var(--cyan); }
+.nav-preview button.active { outline: 1px solid var(--cyan); outline-offset: 1px; }
+.analysis-card { background: #222720; }
+.model-result { background: #192018; border-left-width: 3px; border-radius: 0 4px 4px 0; padding: 12px; }
+.model-result strong { font-size: 13px; }
+.steps { gap: 8px; }
+.num { border-radius: 50%; }
+.log-card { padding: 12px 16px; background: transparent; box-shadow: none; border-style: dashed; }
+.log-card summary { text-transform: none; letter-spacing: .01em; font: 11px/1.5 "Segoe UI", sans-serif; }
+.footer { border-top-style: dashed; }
+.footer-signature { font: 11px/1.5 var(--hand); color: #d3dcc0; }
+.footer-signature > span { color: var(--mint); font: 20px/1 "Segoe UI", sans-serif; }
+
+@media (min-width: 1550px) { .assembly-viewer { height: 290px; } }
+@media (max-width: 1150px) {
+  .intro { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 150px; gap: 18px; }
+  .intro h2 { font-size: 44px; }
+  .field-friend { height: 180px; }
+  .field-friend img { height: 164px; }
+  .friend-orbit { width: 128px; height: 132px; left: 8px; }
+  .friend-stamp { right: -3px; top: 8px; font-size: 7px; }
+  .field-friend figcaption { font-size: 10px; }
+  .intro .sub b { font-size: 13px; }
+  .main-grid { gap: 16px; }
+  .control-note { display: none; }
+  .placeholder { padding: 25px 16px 22px 9px; }
+  .placeholder .hand-note { font-size: 11px; margin-bottom: 9px; }
+  .placeholder small { margin-top: 9px; font-size: 9px; }
+  .placeholder .placeholder-copy > span:not(.hand-note) { font-size: 11px; margin-top: 9px; }
+  .assembly-viewer:before { max-width: 35%; line-height: 1.5; }
+  .cue-section-title small, .haptic-channel-head small { display: block; margin-top: 2px; }
+}
+@media (max-width: 800px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .intro { grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; }
+  .intro-title { grid-column: 1; grid-row: 1; }
+  .intro-story { grid-column: 1; grid-row: 2; }
+  .intro .sub { max-width: 400px; }
+  .intro .sub br { display: none; }
+  .intro .sub b { margin-right: 4px; }
+  .field-friend { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+  .signal-key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 9px; }
+  .edition { font-size: 8px; margin-top: 9px; }
+  .assembly-viewer { height: 330px; }
+  .camera-friend { max-height: 270px; }
+  .placeholder strong { font-size: 32px; }
+  .placeholder .hand-note { font-size: 14px; }
+  .placeholder .placeholder-copy > span:not(.hand-note) { font-size: 13px; }
+  .placeholder small { font-size: 10px; }
+  .control-note { display: block; }
+  .cue-section-title small, .haptic-channel-head small { display: inline; }
+}
+@media (max-width: 480px) {
+  .app { padding: 14px 12px; }
+  .intro { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 12px 6px; }
+  .intro h2 { font-size: clamp(31px, 8.8vw, 42px); }
+  .eyebrow { font-size: 8px; margin-bottom: 9px; gap: 5px; }
+  .ink-star { font-size: 20px; }
+  .intro-story { grid-column: 1 / -1; }
+  .intro .sub { margin: 0; font-size: 11px; }
+  .intro .sub b { font-size: 12px; }
+  .field-friend { grid-row: 1; height: 115px; }
+  .field-friend img { height: 115px; }
+  .friend-orbit { width: 86px; height: 92px; top: 16px; left: 4px; }
+  .field-friend figcaption, .friend-stamp { display: none; }
+  .card-head h3 { font-size: 14px; }
+  .camera-card, .side-card { padding: 12px; }
+  .video-frame { min-height: 210px; }
+  .placeholder { padding: 20px 12px 18px 4px; gap: 0; }
+  .camera-friend { width: 43%; }
+  .placeholder strong { font-size: 25px; }
+  .placeholder .hand-note { font-size: 10px; margin-bottom: 9px; }
+  .placeholder .placeholder-copy > span:not(.hand-note) { font-size: 11px; }
+  .placeholder small { font-size: 9px; margin-top: 9px; }
+  .control-note { display: none; }
+  .gps-panel { padding: 13px; }
+  .address-entry input { flex-basis: 100%; }
+  .address-entry button { flex: 1; }
+  .assembly-viewer { height: 280px; }
+  .cue-section-title { align-items: flex-start; }
+  .cue-section-title small, .haptic-channel-head small { display: block; margin-top: 2px; }
+  .cue-section-title .hand-note { white-space: nowrap; font-size: 11px; }
+  .cue-button { flex-direction: column; gap: 6px; min-width: 70px; font-size: 10px; }
+  .nav-preview button { font-size: 10px; }
+  .nav-preview .icon { margin-right: 4px; }
+  .footer-signature > span { display: inline; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *:before, *:after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
