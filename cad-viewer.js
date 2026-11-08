@@ -22,7 +22,7 @@ function setCue(cue) {
     ? 'PRESSURE STATE · CLEAR'
     : `PRESSURE STATE · ${active.toUpperCase()}`;
   if (reduceMotion.matches) {
-    for (const name of cueNames) for (const part of actuators.get(name) || []) updateActuator(part, targets[name], 1);
+    for (const name of cueNames) updateActuator(actuators.get(name), targets[name], 1);
   }
 }
 
@@ -38,12 +38,16 @@ function updateActuator(actuator, amount, delta) {
   if (!actuator) return;
   const blend = reduceMotion.matches ? 1 : 1 - Math.exp(-9 * Math.max(delta, 0));
   actuator.amount += (amount - actuator.amount) * blend;
-  actuator.pivot.position.z = actuator.basePosition.z - actuator.amount * 0.28;
+  const restingAngles = [0, 0.5, 1];
+  const cueAngles = [2, 3.5, 5];
+  actuator.joints.forEach((joint, index) => {
+    joint.rotation.y = THREE.MathUtils.degToRad(restingAngles[index] + cueAngles[index] * actuator.amount);
+  });
   for (const { material, baseColor } of actuator.materials) {
     if (!material?.emissive) continue;
-    material.color.copy(baseColor).lerp(activeCueThreeColor, actuator.amount);
+    material.color.copy(baseColor).lerp(activeCueThreeColor, actuator.amount * 0.85);
     material.emissive.copy(activeCueThreeColor);
-    material.emissiveIntensity = 0.85 * actuator.amount;
+    material.emissiveIntensity = 0.3 * actuator.amount;
   }
 }
 
@@ -51,6 +55,8 @@ try {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.25;
   renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
@@ -96,39 +102,30 @@ try {
   new ResizeObserver(resize).observe(viewer);
   resize();
 
-  function prepareBladder(mesh, name) {
-    mesh.material = Array.isArray(mesh.material)
-      ? mesh.material.map(material => material.clone())
-      : mesh.material.clone();
-    const geometry = mesh.geometry.clone();
-    geometry.computeBoundingBox();
-    const center = geometry.boundingBox.getCenter(new THREE.Vector3());
-    geometry.translate(-center.x, -center.y, -center.z);
-    mesh.geometry.dispose();
-    mesh.geometry = geometry;
-
-    const pivot = new THREE.Group();
-    pivot.name = `${name}_pressure_pivot`;
-    pivot.position.copy(center);
-    mesh.position.set(0, 0, 0);
-    const parent = mesh.parent;
-    parent.add(pivot);
-    parent.remove(mesh);
-    pivot.add(mesh);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    const actuator = {
-      name,
-      pivot,
-      mesh,
-      materials: materials.map(material => ({ material, baseColor: material.color.clone() })),
-      basePosition: center.clone(),
-      baseScale: mesh.scale.clone(),
-      amount: 0
-    };
-    if (!actuators.has(name)) actuators.set(name, []);
-    actuators.get(name).push(actuator);
+  function prepareClaw(object, name, parts) {
+    const y = { left: -2.7, center: 0, right: 2.7 }[name];
+    const anchors = [[15.85,y,7.57],[18.3475,y,7.45],[20.9125,y,7.24]].map(p => new THREE.Vector3(...p));
+    const joints = anchors.map((anchor,index) => {
+      const joint = new THREE.Group();
+      joint.name = `${name}_joint_${index + 1}`;
+      joint.position.copy(anchor).sub(index ? anchors[index-1] : new THREE.Vector3());
+      return joint;
+    });
+    object.add(joints[0]);
+    joints[0].add(joints[1]);
+    joints[1].add(joints[2]);
+    const materials = [];
+    for (const { child, segment } of parts) {
+      const anchor = anchors[segment];
+      child.geometry.translate(-anchor.x, -anchor.y, -anchor.z);
+      joints[segment].add(child);
+      if (!/Cheek|Bearing|ContactPad|Joint_/i.test(child.name)) {
+        const list = Array.isArray(child.material) ? child.material : [child.material];
+        for (const material of list) materials.push({ material, baseColor: material.color.clone() });
+      }
+    }
+    const actuator = { name, joints, materials, amount: 0 };
+    actuators.set(name, actuator);
     updateActuator(actuator, targets[name], 1);
   }
 
@@ -138,6 +135,16 @@ try {
       if (!child.isMesh) return;
       child.castShadow = true;
       child.receiveShadow = true;
+      if (!/^Reference /i.test(child.name)) {
+        const hardware = /Joint_|Bearing|Fastener/i.test(child.name);
+        const rubber = /webbing|ContactPad/i.test(child.name);
+        const armor = /Finger_/i.test(child.name);
+        child.material = new THREE.MeshStandardMaterial({
+          color: rubber ? '#202528' : hardware ? '#929b9f' : /Ridge/i.test(child.name) ? '#68747d' : armor ? '#424c54' : '#303a40',
+          metalness: rubber ? 0 : hardware ? 0.8 : 0.55,
+          roughness: rubber ? 0.85 : hardware ? 0.32 : 0.46
+        });
+      }
       if (/^Cue_Module_/i.test(child.name) && !/soft bladder envelope_body/i.test(child.name)) {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         for (const material of materials) {
@@ -149,20 +156,22 @@ try {
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         for (const material of materials) {
           material.transparent = true;
-          material.opacity = 0.19;
+          material.opacity = 0.12;
           material.depthWrite = false;
           material.side = THREE.DoubleSide;
           material.needsUpdate = true;
         }
       }
       for (const name of cueNames) {
-        if (child.name.toLowerCase().startsWith(`claw_${name}_finger_`)) {
-          movingParts.push({ child, name });
+        const match = child.name.toLowerCase().match(new RegExp(`^claw_${name}_(finger|joint)_(\\d+)`));
+        if (match) {
+          const segment = Number(match[2]) - (match[1] === 'finger' ? 1 : 0);
+          movingParts.push({ child, name, segment });
           break;
         }
       }
     });
-    for (const { child, name } of movingParts) prepareBladder(child, name);
+    for (const name of cueNames) prepareClaw(object, name, movingParts.filter(part => part.name === name));
     modelRoot.add(object);
     modelRoot.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(modelRoot);
@@ -176,7 +185,7 @@ try {
     viewer.setAttribute('aria-label', 'Interactive 3D Fusion assembly. The active segmented claw presses toward the shoe for left, center, or right cues.');
     if (fallback) fallback.hidden = true;
     modelReady = true;
-    if (cueNames.some(name => actuators.get(name)?.length !== 6)) console.warn('Expected three plates and three ridges for each cue.');
+    if (cueNames.some(name => movingParts.filter(part => part.name === name && /Finger_[123]$/.test(part.child.name)).length !== 3)) console.warn('Missing claw armor segment.');
     render(0);
   }
 
@@ -195,7 +204,7 @@ try {
     frameHandle = requestAnimationFrame(render);
     const delta = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
     lastFrame = now;
-    for (const name of cueNames) for (const part of actuators.get(name) || []) updateActuator(part, targets[name], delta);
+    for (const name of cueNames) updateActuator(actuators.get(name), targets[name], delta);
     controls.update();
     renderer.render(scene, camera);
   }
