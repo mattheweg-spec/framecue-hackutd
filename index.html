@@ -3,111 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101820">
+  <meta name="theme-color" content="#101111">
   <title>FrameCue — camera to tactile cue</title>
-  <style>
-    :root{color-scheme:dark;--bg:#101820;--panel:#17232c;--panel2:#1c2b35;--line:#2c3c46;--text:#eff5f3;--muted:#a4b4b8;--mint:#b6f2d7;--cyan:#8ee7e2;--amber:#ffd69a;--danger:#ff9d9d;--radius:20px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 10% 0%,#20353d 0,transparent 37%),var(--bg);color:var(--text);min-height:100vh}button{font:inherit;color:inherit;cursor:pointer}button:focus-visible{outline:3px solid var(--mint);outline-offset:3px}.app{max-width:1200px;margin:auto;padding:30px 24px 28px}.topbar{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:34px}.brand{display:flex;align-items:center;gap:13px}.brandmark{width:42px;height:42px;border:1px solid #4e736f;border-radius:14px;display:grid;place-items:center;color:var(--mint);background:#1d3537;font-size:20px}.brand h1{font-size:17px;margin:0;letter-spacing:.02em}.brand p{margin:3px 0 0;color:var(--muted);font-size:12px}.track{border:1px solid #2e514d;background:#1b3533;color:var(--mint);border-radius:999px;padding:8px 12px;font-size:12px;letter-spacing:.04em}.intro{display:flex;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:24px}.eyebrow{color:var(--mint);text-transform:uppercase;font-size:11px;letter-spacing:.17em;font-weight:700;margin:0 0 10px}.intro h2{font-weight:550;font-size:clamp(28px,4vw,45px);letter-spacing:-.045em;line-height:1.06;margin:0;max-width:670px}.intro .sub{color:var(--muted);max-width:360px;line-height:1.6;font-size:14px;margin:0}.main-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(330px,.9fr);gap:18px}.card{background:linear-gradient(160deg,rgba(31,47,57,.98),rgba(22,33,42,.98));border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.camera-card{padding:18px}.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.card-head h3,.side-card h3{margin:0;font-size:14px;font-weight:650}.live-pill{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}.dot{width:7px;height:7px;background:#64767b;border-radius:50%}.dot.active{background:var(--mint);box-shadow:0 0 12px #8de8c9}.video-frame{background:#0c1216;aspect-ratio:16/10;border-radius:14px;overflow:hidden;position:relative;display:grid;place-items:center;border:1px solid #2d4149}.video-frame video{width:100%;height:100%;object-fit:cover;display:none;transform:scaleX(1)}.video-frame video.ready{display:block}.placeholder{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:20px}.camera-icon{font-size:28px;color:#8ee7e2;margin-bottom:10px}.placeholder strong{font-size:14px}.placeholder span{font-size:12px;color:var(--muted);margin-top:6px}.view-label{position:absolute;bottom:12px;left:12px;background:rgba(8,16,19,.78);border:1px solid #506168;border-radius:999px;padding:6px 9px;font-size:10px;color:#d6e1e0;display:none}.video-frame.has-video .view-label{display:block}.controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.primary,.secondary,.cue-button{border:0;border-radius:11px;padding:11px 15px;font-size:12px;font-weight:650;transition:transform .15s,background .15s}.primary{background:var(--mint);color:#10201b}.primary:hover{background:#d0ffe9;transform:translateY(-1px)}.secondary{background:#293a44;color:#e3eeee;border:1px solid #40535d}.secondary:hover,.cue-button:hover{background:#354c56}.secondary:disabled{opacity:.5;cursor:not-allowed}.side-stack{display:grid;gap:18px;align-content:start}.side-card{padding:18px}.status-row{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:10px 0 16px}.status-title{font-size:13px;font-weight:650}.status-caption{font-size:11px;color:var(--muted);margin-top:4px}.status-chip{font-size:10px;color:var(--muted);background:#293941;border-radius:999px;padding:6px 9px;white-space:nowrap}.status-chip.good{color:var(--mint);background:#1c3b35}.status-chip.warn{color:var(--amber);background:#47391f}.model-result{padding:12px 13px;border-radius:13px;background:#111b21;border:1px solid #2d3e47;min-height:74px}.model-result strong{display:block;font-size:12px;margin-bottom:5px}.model-result p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}.wearable{border:1px solid #344850;background:linear-gradient(135deg,#23343c,#17252c);border-radius:16px;padding:15px;margin-top:14px}.wearable-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:13px}.exosuit{height:145px;display:flex;align-items:center;justify-content:center;gap:14px;position:relative}.exosuit:before{content:"";position:absolute;top:11px;bottom:11px;left:50%;width:30px;transform:translateX(-50%);border:2px solid #54716f;border-radius:18px 18px 12px 12px;background:#253b40}.zone{position:relative;z-index:1;width:68px;height:50px;border:1px solid #52706f;border-radius:14px;background:#1a292f;display:grid;place-items:center;color:#9fb6b5;font-size:10px;transition:all .2s}.zone.center{margin-top:-43px}.zone.active{background:#305d54;color:#d8fff0;border-color:var(--mint);box-shadow:0 0 25px #86e6be55;transform:scale(1.06)}.zone.center.active{transform:translateY(-2px) scale(1.06)}.zone-labels{display:flex;justify-content:space-around;color:#a7b8ba;font-size:10px;margin-top:7px}.cue-buttons{display:flex;gap:7px;margin-top:13px}.cue-button{flex:1;padding:9px 6px;background:#243640;border:1px solid #3b5059;color:#c9d7d8;font-size:10px}.cue-button.active{border-color:var(--mint);color:var(--mint)}.steps{display:grid;gap:9px;margin-top:12px}.step{display:flex;align-items:center;gap:10px;color:#86999e;font-size:11px}.step .num{width:20px;height:20px;border:1px solid #435760;border-radius:50%;display:grid;place-items:center;font-size:9px}.step.done{color:#d9e9e6}.step.done .num{background:#28473f;color:var(--mint);border-color:#51816f}.log{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:6px;max-height:96px;overflow:auto}.log li{font-size:10px;line-height:1.4;color:#9eb1b4}.log time{color:#61787f;font-variant-numeric:tabular-nums;margin-right:7px}.safety{margin-top:18px;border-radius:14px;padding:12px 15px;border:1px solid #665333;background:#332b1c;color:#ffe7bf;font-size:11px;line-height:1.5;display:flex;gap:10px}.safety strong{white-space:nowrap}.footer{margin-top:17px;display:flex;justify-content:space-between;gap:14px;color:#72878b;font-size:10px}.footer a{color:#a8cfcb;text-decoration:none}.footer a:hover{text-decoration:underline}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    @media(max-width:850px){.main-grid{grid-template-columns:1fr}.intro{display:block}.intro .sub{margin-top:12px}.side-stack{grid-template-columns:1fr 1fr}.side-card:last-child{grid-column:1/-1}}@media(max-width:560px){.app{padding:20px 14px}.topbar{margin-bottom:25px}.side-stack{grid-template-columns:1fr}.side-card:last-child{grid-column:auto}.camera-card,.side-card{padding:14px}.intro h2{font-size:32px}.footer{display:block}.footer span{display:block;margin-top:6px}}
-  </style>
-  <style>
-    .video-frame video{position:absolute;inset:0;z-index:0}
-    .detection-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
-    .video-frame.has-video .placeholder{display:none}
-    .detection-box{position:absolute;border:1px solid rgba(255,99,112,.86);background:linear-gradient(135deg,rgba(255,73,91,.08),rgba(255,73,91,.025));box-shadow:0 0 14px rgba(255,64,86,.18),inset 0 0 10px rgba(255,64,86,.05);transition:left .1s linear,top .1s linear,width .1s linear,height .1s linear,opacity .12s linear}
-    .detection-box.primary{border-color:#ff6876;box-shadow:0 0 24px rgba(255,64,86,.34),inset 0 0 18px rgba(255,64,86,.13)}
-    .detection-corner{position:absolute;width:12px;height:12px;border-color:#ffc0a6;border-style:solid;filter:drop-shadow(0 0 5px #ff5d68)}
-    .detection-corner.tl{top:-2px;left:-2px;border-width:2px 0 0 2px}.detection-corner.tr{top:-2px;right:-2px;border-width:2px 2px 0 0}.detection-corner.bl{bottom:-2px;left:-2px;border-width:0 0 2px 2px}.detection-corner.br{bottom:-2px;right:-2px;border-width:0 2px 2px 0}
-    .detection-tag{position:absolute;top:-25px;left:-1px;width:max-content;max-width:min(220px,calc(100vw - 56px));white-space:normal;overflow-wrap:anywhere;padding:5px 8px;border-radius:7px 7px 7px 2px;background:#b52e45;color:#fff6f1;font:700 10px/1.25 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.035em;box-shadow:0 4px 16px #0a1018aa}
-    .detection-box.secondary .detection-tag{background:#74404c}
-    .detection-box.tag-inside .detection-tag{top:3px;left:3px;border-radius:5px}
-    .detection-box.tag-right .detection-tag{left:auto;right:-1px;border-radius:7px 7px 2px 7px}
-    .detection-box.tag-right.tag-inside .detection-tag{right:3px;left:auto}
-    .view-label{z-index:3}
-    .privacy-note{margin:10px 2px 0;color:#9dafb3;font-size:10px;line-height:1.5}
-    .primary:disabled,.secondary:disabled{opacity:.48;cursor:not-allowed;transform:none}
-    .intro>div,.intro .sub,.status-row>div,.status-title,.status-caption,.model-result,.model-result strong,.model-result p,.privacy-note,.footer span,.safety span,.log li,.step>span:last-child{min-width:0;overflow-wrap:anywhere}
-    .status-row{align-items:flex-start}
-    .status-row>div{flex:1}
-    .status-chip{max-width:48%;white-space:normal;text-align:center;line-height:1.25;overflow-wrap:anywhere}
-    .footer{align-items:flex-start}
-    .main-grid>*{min-width:0}
-    .card-head>*,.wearable-top>*,.cue-buttons>*{min-width:0}
-    .detection-tag{overflow-wrap:anywhere;word-break:normal}
-    .wearable{background:radial-gradient(ellipse at 52% 48%,#233941 0,#16252c 68%);border-color:#38535a;padding:12px 14px 13px}
-    .wearable-top{align-items:center;margin-bottom:6px;color:#a5bab9;letter-spacing:.12em}
-    .wearable-top span:last-child{color:#c4e9d8}
-    .wearable-svg{display:block;width:100%;height:auto;max-height:210px;overflow:visible}
-    .wearable-svg .shoe-shell{fill:#24343b;stroke:#718a8b;stroke-width:2}
-    .wearable-svg .shoe-inset{fill:#19272d;stroke:#435e64;stroke-width:1.2}
-    .wearable-svg .chassis{fill:none;stroke:#91a8a5;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
-    .wearable-svg .armor{fill:#31474c;stroke:#668080;stroke-width:1.3}
-    .wearable-svg .accent{fill:none;stroke:#c5f269;stroke-width:2.6;stroke-linecap:round}
-    .wearable-svg .bridge{fill:#566f70;stroke:#9ab4ac;stroke-width:1}
-    .wearable-svg .controller{fill:#101d22;stroke:#78918e;stroke-width:1.5}
-    .wearable-svg .cue-module{opacity:.78;transition:opacity .22s ease,filter .22s ease}
-    .wearable-svg .cue-module .module-ring{fill:#15252a;stroke:#8b9e98;stroke-width:2;transition:stroke .22s ease,stroke-width .22s ease}
-    .wearable-svg .cue-module .module-core{fill:#5b7875;transition:fill .22s ease}
-    .wearable-svg .cue-module.active{opacity:1;filter:drop-shadow(0 0 7px currentColor)}
-    .wearable-svg .cue-module.active .module-ring{stroke:currentColor;stroke-width:3.5}
-    .wearable-svg .cue-module.active .module-core{fill:currentColor}
-    .wearable-svg .cue-module.left{color:#ff6464}
-    .wearable-svg .cue-module.center{color:#ff6464}
-    .wearable-svg .cue-module.right{color:#ff6464}
-    .wearable-svg text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em}
-    .assembly-viewer{position:relative;width:100%;height:clamp(190px,46vw,252px);overflow:hidden;border:1px solid #385057;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,#263b42,#111d23 78%);touch-action:none}
-    .assembly-viewer canvas{display:block;width:100%;height:100%;outline:none}
-    .assembly-viewer[hidden],.wearable-fallback[hidden]{display:none}
-    .assembly-loading{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:#a9c0bd;font-size:11px;line-height:1.5;background:#132027aa}
-    .assembly-viewer.ready .assembly-loading{display:none}
-    .assembly-viewer.error .assembly-loading{color:#ffd69a}
-    .assembly-hint{position:absolute;left:9px;bottom:8px;color:#9cb3b2;background:#0b141acc;border:1px solid #3b5156;border-radius:999px;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
-    .assembly-reset{position:absolute;right:9px;bottom:8px;border:1px solid #536a70;border-radius:999px;background:#14242bdc;color:#d9e8e5;padding:5px 9px;font-size:9px}
-    .mechanism-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}.mechanism-controls button{font-size:10px;padding:7px 10px}.mechanism-controls button[aria-pressed="true"]{border-color:#83b9a8;color:#c9f4df}.mechanism-status{margin-left:auto;align-self:center;color:#91a8a9;font-size:9px;letter-spacing:.06em}
-    .assembly-readout{position:absolute;right:9px;top:8px;border:1px solid #3b555b;border-radius:999px;background:#101b20dc;color:#c7d8d6;padding:5px 8px;font:9px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;pointer-events:none}
-    .assembly-note{margin:8px 2px 0;color:#9dafb3;font-size:9px;line-height:1.45}
-    .haptic-channel{margin-top:12px;padding:11px 12px;border:1px solid #315357;border-radius:12px;background:#14242a}
-    .haptic-channel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:#b7d1ce;letter-spacing:.08em;text-transform:uppercase}
-    .haptic-channel-head strong{font-size:10px;color:#74e3d4}
-    .haptic-channel-body{display:flex;align-items:center;gap:12px;margin-top:9px}
-    .ankle-map{width:92px;height:62px;flex:none}
-    .ankle-map .band{fill:#263b40;stroke:#87a7a4;stroke-width:2}
-    .ankle-map .motor{fill:#203238;stroke:#607d7d;stroke-width:2;transition:fill .18s,stroke .18s,filter .18s}
-    .ankle-map .motor.active{fill:#64e2d1;stroke:#c6fff2;filter:drop-shadow(0 0 5px #64e2d1)}
-    .nav-readout{font-size:11px;line-height:1.45;color:#dceae7}
-    .nav-readout span{display:block;margin-top:3px;color:#90aaa8;font-size:9px}
-    .nav-preview{display:flex;gap:6px;margin-top:9px}
-    .nav-preview button{flex:1;padding:7px 5px;border:1px solid #36575a;border-radius:8px;background:#20363b;color:#bcece4;font-size:9px}
-    .nav-preview button.active{border-color:#71e4d4;background:#294c4d;color:#d9fff7}
-    .gps-place small{color:#84aaa6;font-size:10px}
-    .gps-panel{margin-top:14px;padding:14px;border:1px solid #344850;border-radius:15px;background:#142129}.address-label{display:block;color:#aebdc0;font-size:11px;margin:8px 0 5px}.address-entry{display:flex;gap:7px}.address-entry input{min-width:0;flex:1;padding:9px;border:1px solid #3b5158;border-radius:8px;background:#101a1f;color:#eaf1ee}.gps-places{display:grid;gap:5px;margin-top:6px}.gps-place{padding:8px 10px;border:1px solid #33474f;border-radius:8px;background:#1a2a31;color:#e3ece9;text-align:left;font-size:11px}.route-step{padding:10px 12px;margin-top:8px;border-radius:10px;background:#0f191f;color:#e7efed;font-size:12px;line-height:1.4;min-height:40px}
-    .zone-labels{font-size:9px;letter-spacing:.16em;color:#abc0bc;margin-top:0}
-    @media(max-width:520px){.wearable-svg{max-height:178px}.wearable{padding:10px}}
-    @media(max-width:420px){.status-row{gap:8px}.status-chip{max-width:42%}.cue-button{font-size:9px}.track{font-size:10px;padding:7px 9px}}
-  </style>
+  <link rel="stylesheet" href="/framecue.css">
 </head>
 <body>
+  <a class="skip-link" href="#startButton">Skip to camera controls</a>
   <main class="app">
     <header class="topbar">
-      <div class="brand"><div class="brandmark" aria-hidden="true">◉</div><div><h1>FrameCue</h1><p>camera-to-tactile awareness prototype</p></div></div>
-      <div class="track">NVIDIA · NEMOTRON</div>
+      <div class="brand"><div class="brandmark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5 13V5h8m6 0h8v8M5 19v8h8m6 0h8v-8M10 21l7-12-2 8h7" stroke="currentColor" stroke-width="3"/></svg></div><div><h1>Frame<span>Cue</span></h1><p>Camera → cue / wearable study</p></div></div>
+      <div class="event-mark"><strong>HACKUTD / ZERODAY</strong><br>2026 · FIELD PROTOTYPE</div><div class="track">POWERED BY<br>NVIDIA NEMOTRON</div>
     </header>
     <section class="intro" aria-labelledby="page-title">
-      <div><p class="eyebrow">Observe · Interpret · Cue</p><h2 id="page-title">A scene becomes a tactile signal.</h2></div>
-      <p class="sub">A lightweight on-device model tracks common objects for faster updates; NVIDIA Nemotron adds slower scene checks. Obstacle location and route direction use separate simulated haptic zones.</p>
+      <div><p class="eyebrow">01 / Observe &nbsp; 02 / Interpret &nbsp; 03 / Cue</p><h2 id="page-title">A different kind<br>of <em>signal.</em></h2></div>
+      <div><p class="sub"><b>See the scene. Feel the direction.</b><br>Camera awareness meets a wearable concept. Explore obstacle cues at the shoe and route cues at the ankle—two independent, simulated signals.</p><div class="edition">FRAMECUE × FLUX / SIGNAL STUDIES</div></div><img class="signal-art" src="/assets/signal-study.svg" alt="" aria-hidden="true">
     </section>
     <div class="main-grid">
       <section class="card camera-card" aria-label="Camera input">
-        <div class="card-head"><h3>Camera view</h3><div class="live-pill"><span class="dot" id="cameraDot"></span><span id="cameraState">Camera off</span></div></div>
+        <div class="card-head"><h3><span class="section-no" aria-hidden="true">01</span>Live perception</h3><div class="live-pill"><span class="dot" id="cameraDot"></span><span id="cameraState">Camera off</span></div></div>
         <div class="video-frame" id="videoFrame">
           <video id="video" playsinline muted></video>
           <div class="detection-layer" id="detectionLayer" aria-hidden="true"></div>
-          <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true">◉</div><strong>Ready when you are</strong><span>Start live scan to open the camera and analyze successive frames.</span></div>
+          <div class="placeholder" id="placeholder"><div class="camera-icon" aria-hidden="true"><svg viewBox="0 0 100 70" fill="none"><path d="M4 23V5h20m52 0h20v18M4 47v18h20m52 0h20V47" stroke="currentColor" stroke-width="2"/><path d="M13 35s16-19 37-19 37 19 37 19-16 19-37 19S13 35 13 35Z" stroke="currentColor" stroke-width="1.5"/><circle cx="50" cy="35" r="9" fill="currentColor"/><path d="m71 5-44 60" stroke="#eeeadd" stroke-width="2"/></svg></div><strong>Open your field of view</strong><span>Start the camera. Watch objects become directional cue signals.</span></div>
           <span class="view-label" id="viewLabel">LIVE OBJECT ESTIMATES</span>
         </div>
         <div class="controls"><button class="primary" id="startButton">Start live scan</button><button class="secondary" id="retryButton" hidden>Retry analysis</button><button class="secondary" id="stopButton" disabled>Stop</button></div>
-        <p class="privacy-note">Fast object detection runs in this browser. A smaller reference frame is sent to NVIDIA Nemotron about every 12 seconds. People are labeled only “person”; no identity or face analysis is requested. If the local model cannot load, the app falls back to slower cloud scanning.</p>
-        <section class="gps-panel" aria-labelledby="gps-title"><div class="card-head"><h3 id="gps-title">Mapped walking route</h3><span class="status-chip" id="gpsChip">GPS OFF</span></div>
+        <details class="technical-note"><summary>Camera processing & privacy</summary><p class="privacy-note">Fast object detection runs in this browser. A smaller reference frame is sent to NVIDIA Nemotron about every 12 seconds. People are labeled only “person”; no identity or face analysis is requested. If the local model cannot load, the app falls back to slower cloud scanning.</p></details>
+        <section class="gps-panel" aria-labelledby="gps-title"><div class="card-head"><h3 id="gps-title"><span class="section-no" aria-hidden="true">02</span>Find your heading</h3><span class="status-chip" id="gpsChip">GPS OFF</span></div>
           <label class="address-label" for="gpsAddress">Where do you want to go?</label><div class="address-entry"><input id="gpsAddress" type="text" placeholder="Say or type a place or address"><button class="secondary" id="gpsVoice" type="button" aria-label="Speak destination">Speak</button><button class="secondary" id="gpsFind" type="button">Find</button></div>
           <div id="gpsPlaces" class="gps-places" role="listbox" aria-label="Matching places"></div>
           <input id="gpsLat" type="hidden"><input id="gpsLon" type="hidden">
@@ -117,20 +39,10 @@
         </section>
       </section>
       <div class="side-stack">
-        <section class="card side-card" aria-labelledby="analysis-title">
-          <h3 id="analysis-title">Scene interpretation</h3>
-          <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
-          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">The local model preloads in the background; start live scan to begin detection.</p></div>
-          <div class="steps" aria-label="Processing steps">
-            <div class="step" id="stepCapture"><span class="num">1</span><span>Capture a camera frame</span></div>
-            <div class="step" id="stepNemotron"><span class="num">2</span><span>Interpret scene with Nemotron</span></div>
-            <div class="step" id="stepCue"><span class="num">3</span><span>Map result to simulated cue</span></div>
-          </div>
-        </section>
-        <section class="card side-card" aria-labelledby="cue-title">
-          <div class="card-head"><h3 id="cue-title">Simulated wearable</h3><span class="status-chip" id="cueChip">AVOIDANCE CLEAR</span></div>
+        <section class="card side-card wearable-card" aria-labelledby="cue-title">
+          <div class="card-head"><h3 id="cue-title"><span class="section-no" aria-hidden="true">03</span>FLUX / wearable</h3><span class="status-chip" id="cueChip">AVOIDANCE CLEAR</span></div>
           <div class="wearable" role="group" aria-label="FLUX over-shoe exoskeleton concept with interactive simulated tactile cue modules">
-            <div class="wearable-top"><span>FLUX / OVER-SHOE</span><span>ASSISTIVE NAV</span></div>
+            <div class="wearable-top"><span>ARTICULATED SHOE FRAME</span><span>INTERACTIVE SIMULATION</span></div>
             <div class="assembly-viewer" id="assemblyViewer" aria-label="Interactive 3D FrameCue Fusion assembly">
               <canvas id="assemblyCanvas" tabindex="0" aria-label="3D assembly. Drag to rotate; use the mouse wheel or pinch to zoom."></canvas>
               <div class="assembly-loading" id="assemblyLoading" role="status">Loading the editable Fusion assembly…</div>
@@ -143,7 +55,7 @@
               <button class="secondary" id="bindingToggle" data-mechanism="bindings" type="button" aria-pressed="false" disabled>Detach rail bindings</button>
               <span class="mechanism-status" id="mechanismStatus" role="status">MECHANISM PREVIEW</span>
             </div>
-            <p class="assembly-note">Use the preview controls to open the rear cuff latch and pull the rail pins. These controls animate the concept model; they do not actuate physical hardware.</p>
+            <details class="technical-note"><summary>How the mechanism connects</summary><p class="assembly-note">Use the preview controls to open the rear cuff latch and pull the rail pins. These controls animate the concept model; they do not actuate physical hardware.</p></details>
             <svg class="wearable-svg wearable-fallback" id="wearableFallback" viewBox="0 0 440 206" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden>
               <defs><linearGradient id="shellShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#40585d"/><stop offset="1" stop-color="#1c2b31"/></linearGradient></defs>
               <path class="shoe-shell" fill="url(#shellShade)" d="M59 107c4-20 20-38 43-47l46-18c25-10 54-14 83-13l75 5c34 2 58 14 72 37l22 36c8 13 8 27-2 37-10 10-30 15-58 17l-196 12c-42 2-69-4-82-18-8-9-10-20-3-48Z"/>
@@ -182,12 +94,21 @@
             <div class="nav-preview" aria-label="Navigation haptic preview controls"><button type="button" data-nav-cue="left">Preview left</button><button type="button" data-nav-cue="center">Preview forward</button><button type="button" data-nav-cue="right">Preview right</button></div>
           </section>
         </section>
-        <section class="card side-card" aria-labelledby="workflow-title">
-          <h3 id="workflow-title">Workflow log</h3><ul class="log" id="log" aria-live="polite"><li><time>--:--</time>Waiting for first camera frame.</li></ul>
+        <section class="card side-card analysis-card" aria-labelledby="analysis-title">
+          <h3 id="analysis-title"><span class="section-no" aria-hidden="true">04</span>Scene interpretation</h3>
+          <div class="status-row"><div><div class="status-title" id="analysisTitle">Waiting for camera</div><div class="status-caption" id="analysisCaption">Nemotron analysis has not started.</div></div><span class="status-chip" id="modelChip">STANDBY</span></div>
+          <div class="model-result" aria-live="polite"><strong id="objectName">No scene analyzed yet</strong><p id="sceneReason">The local model preloads in the background; start live scan to begin detection.</p></div>
+          <div class="steps" aria-label="Processing steps">
+            <div class="step" id="stepCapture"><span class="num">1</span><span>Camera frame</span></div>
+            <div class="step" id="stepNemotron"><span class="num">2</span><span>Nemotron scene check</span></div>
+            <div class="step" id="stepCue"><span class="num">3</span><span>Simulated cue</span></div>
+          </div>
+        </section>
+        <section class="card side-card log-card" aria-labelledby="workflow-title"><details><summary id="workflow-title">Signal log / processing events</summary><ul class="log" id="log" aria-live="polite"><li><time>--:--</time>Waiting for first camera frame.</li></ul></details>
         </section>
       </div>
     </div>
-    <footer class="footer"><span>Local detection stays on this computer; periodic reference frames go to NVIDIA.</span><span>FrameCue · HackUTD NVIDIA track prototype</span></footer>
+    <footer class="footer"><span>Local detection stays on this computer; periodic reference frames go to NVIDIA.</span><span>FRAMECUE / HACKUTD 2026 · BUILT TO EXPLORE</span></footer>
   </main>
   <script>
     const video = document.querySelector('#video');

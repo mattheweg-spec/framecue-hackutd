@@ -235,11 +235,11 @@ try {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 1000);
   camera.up.set(0, 1, 0);
-  scene.add(new THREE.HemisphereLight(0xd8efff, 0x243039, 2.15));
+  scene.add(new THREE.HemisphereLight(0xf3f0df, 0x29362c, 2.15));
   const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
   keyLight.position.set(20, 35, 30);
   scene.add(keyLight);
-  const rimLight = new THREE.DirectionalLight(0x7de5d8, 1.0);
+  const rimLight = new THREE.DirectionalLight(0xd6e3a4, 1.0);
   rimLight.position.set(-25, 12, -24);
   scene.add(rimLight);
 
