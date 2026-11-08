@@ -1,0 +1,13 @@
+{
+  "autodeskProduct": "Fusion360",
+  "type": "script",
+  "id": "e89b2112-a01c-48db-8cda-dd063a15e049",
+  "author": "FrameCue",
+  "description": {
+    "": "Adds a separate ankle cuff with left, forward, and right route guidance haptic motor concepts."
+  },
+  "version": "1.0.0",
+  "runOnStartup": false,
+  "supportedOS": "windows",
+  "editEnabled": true
+}

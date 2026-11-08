@@ -41,7 +41,7 @@ The 3D viewer loads the Fusion assembly exported to `CAD/web-model/` and adds an
 - `cad-viewer.js` — interactive Three.js viewer and animated claw meshes driven by the app's cue state.
 - `CAD/web-model/framecue-assembly.obj` and `.mtl` — Fusion assembly mesh and materials used by the web viewer.
 - `CAD/fusion_claw_revision.py` — Fusion API construction script for the separate rounded claw fingers and hinge axles; the saved Fusion assembly contains the resulting components.
-- `CAD/fusion_navigation_cuff.py` — Fusion API script that adds a separate ankle cuff and three rounded left / forward / right navigation motor pods to the active FrameCue FLUX assembly.
+- `CAD/fusion_navigation_cuff/` — Autodesk Fusion script and manifest. Add this folder from Fusion's Scripts and Add-Ins panel and run it with the FrameCue FLUX design open to add a separate ankle cuff and three rounded left / forward / right navigation motor pods.
 - `CAD/fusion_segmented_claws.py` — Fusion construction script for the current faceted plates, ridges and joint pins.
 - `CAD/fusion_refine_frame.py` — Fusion refinement script for hollow rail conduits, reinforced junctions, bearing collars, side supports and contact pads.
 - `server.js` — static web server, protected NVIDIA API call, response validation, and cue mapping.

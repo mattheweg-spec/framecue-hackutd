@@ -9,7 +9,7 @@ Create an editable, technical-looking concept assembly for a shoe-mounted obstac
 - Saved in the Autodesk Fusion **Default Project** as `FrameCue FLUX Pneumatic Exoskeleton Concept`.
 - Built as an assembly with separate components for the translucent shoe reference, left/right side rails, heel link, two webbing bands, four rail-mounted band adjusters, controller enclosure and bracket, three cue cartridges, and three pneumatic route placeholders.
 - The cue cartridges are color coded blue / amber / red. Their dark compliant volumes, cradle lips, and inlet bosses are visual placeholders for a future soft-actuator study.
-- `CAD/fusion_navigation_cuff.py` adds a separate two-rail ankle cuff and left / forward / right rounded haptic motor pods. Run it from Fusion's Scripts and Add-Ins panel with the FrameCue FLUX assembly open. The browser viewer builds a matching interactive cuff over the existing Fusion mesh.
+- `CAD/fusion_navigation_cuff/` contains an Autodesk Fusion Python script and manifest. Add the folder from Fusion's Scripts and Add-Ins panel, then run it with the FrameCue FLUX assembly open to add a separate two-rail ankle cuff and left / forward / right rounded haptic motor pods. The browser viewer builds a matching interactive cuff over the existing Fusion mesh.
 - The Fusion design includes editable extrusion features and user parameters for `railWall`, `strapThickness`, and `bladderLift`.
 - The local sketch/STL concept files remain preliminary; the Fusion assembly is the current editable CAD artifact.
 
